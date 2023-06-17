@@ -35,7 +35,7 @@ emitExpr = \case
   LogicalNegation expr -> emitLogicalNegation expr
   Addition leftExpr rightExpr -> emitAddition leftExpr rightExpr
   Multiplication leftExpr rightExpr -> emitMultiplication leftExpr rightExpr
-  Division leftExpr rightExpr -> undefined
+  Division leftExpr rightExpr -> emitDivision leftExpr rightExpr
   Subtraction leftExpr rightExpr -> emitSubtraction leftExpr rightExpr
 
 emitLiteral :: PlumeLit -> Doc ann
@@ -87,7 +87,6 @@ emitBitwiseComplement expr =
     ]
   where
     body = emitExpr expr
-
 emitLogicalNegation :: PlumeExpr -> Doc ann
 emitLogicalNegation expr =
   vcat
@@ -144,3 +143,18 @@ emitSubtraction leftExpr rightExpr = do
     leftBody = emitExpr leftExpr
     rightBody = emitExpr rightExpr
 
+emitDivision :: PlumeExpr -> PlumeExpr -> Doc ann
+emitDivision leftExpr rightExpr = do
+  vcat
+    [ "# right operand"
+    , rightBody
+    , "push" <×> "%rax # save value of right operand on the stack"
+    , "# left operand"
+    , leftBody
+    , "pop" <×> "%rcx # pop right operand from the stack into %rcx"
+    , "cdq"
+    , "idivq" <×> "%rcx # divide left by right (that is in %rax), save result in %rax"
+    ]
+  where
+    leftBody = emitExpr leftExpr
+    rightBody = emitExpr rightExpr

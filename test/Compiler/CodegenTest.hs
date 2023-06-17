@@ -51,6 +51,12 @@ specs =
         diffCmd
         "./test/golden/asm/subtraction.s"
         testSubtraction 
+
+    , goldenVsStringDiff
+        "Division"
+        diffCmd
+        "./test/golden/asm/division.s"
+        testDivision 
     ]
 
 return2Test :: IO LazyByteString
@@ -132,6 +138,20 @@ testSubtraction = do
         [str|
             int main() { 
               return 3 - 2;
+            }
+          |]
+
+  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+
+testDivision :: IO LazyByteString
+testDivision = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+            int main() { 
+              return 10 / 2;
             }
           |]
 

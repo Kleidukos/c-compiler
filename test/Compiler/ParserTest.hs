@@ -190,6 +190,7 @@ stage3Tests :: [TestTree]
 stage3Tests =
   [ testCase "Parse addition" parseAddition
   , testCase "Parse subtraction" parseSubtraction
+  , testCase "Parse mixed operators" parseMixedOperators
   ]
 
 parseAddition :: Assertion
@@ -213,3 +214,14 @@ parseSubtraction = do
 
   parsed
     @?= Subtraction (Lit (LitInt 2)) (Lit (LitInt 4))
+
+parseMixedOperators :: Assertion
+parseMixedOperators = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseExpression
+        [str| ~2 + 4) |]
+
+  parsed
+    @?= Addition (BitwiseComplement (Lit (LitInt 2))) (Lit (LitInt 4))
