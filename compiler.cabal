@@ -1,0 +1,130 @@
+cabal-version:      3.6
+
+-- This file has been generated from package.yaml by hpack version 0.35.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: d1b805c36a026c1fda3917546e854f9bf651c2cbee8d6a554ee634440d8eb9c8
+
+name:               compiler
+version:            0.1.0.0
+license-file:       LICENSE
+build-type:         Simple
+extra-source-files:
+  ChangeLog.md
+  README.md
+
+common extensions
+  default-extensions:
+    NoStarIsType
+    DataKinds
+    DeriveAnyClass
+    DerivingStrategies
+    DerivingVia
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    PackageImports
+    PolyKinds
+    QuasiQuotes
+    RecordWildCards
+    TypeFamilies
+    UndecidableInstances
+    ViewPatterns
+
+common flags
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-record-updates
+    -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+    -fhide-source-paths -Wno-unused-do-bind -fshow-hole-constraints
+    -Wno-unticked-promoted-constructors -Werror=unused-imports
+    -fdicts-strict -fmax-worker-args=16 -fspec-constr-recursive=16
+    -Wunused-packages
+
+common rts-options
+  ghc-options: -rtsopts -threaded "-with-rtsopts=-N -T"
+
+source-repository head
+  type:     git
+  location: https://github.com/JKTKops/compiler
+
+library
+  import:             extensions
+  import:             flags
+
+  -- cabal-fmt: expand src/
+  exposed-modules:
+    Compiler.Codegen.X86_64
+    Compiler.Parser.Helpers
+    Compiler.Parser.Lexer
+    Compiler.Parser.MegaParser
+    Compiler.Parser.Parser
+    Compiler.TypeChecker
+    Compiler.Types.AST
+    Compiler.Types.Name
+    Compiler.Types.SrcLoc
+    Utils
+    Utils.Output
+
+  other-modules:      Paths_compiler
+  hs-source-dirs:     src
+  build-tool-depends:
+    , alex:alex    ^>=3.3
+    , happy:happy  ^>=1.20
+
+  build-depends:
+    , array
+    , base                >=4.7 && <5
+    , bytestring
+    , containers
+    , megaparsec
+    , mtl
+    , parser-combinators
+    , prettyprinter
+    , PyF
+    , text
+    , text-display
+    , transformers
+    , vector
+
+  default-language:   GHC2021
+
+executable phc
+  import:           extensions
+  import:           flags
+  import:           rts-options
+  main-is:          Main.hs
+  hs-source-dirs:   app
+  build-depends:    base >=4.7 && <5
+  default-language: GHC2021
+
+test-suite compiler-tests
+  import:           extensions
+  import:           flags
+  import:           rts-options
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  other-modules:
+    Compiler.CodegenTest
+    TestUtils
+
+  hs-source-dirs:   test
+  other-modules:    Test
+  build-depends:
+    , base           >=4.7 && <5
+    , bytestring
+    , compiler
+    , filepath
+    , pretty-simple
+    , prettyprinter
+    , PyF
+    , tasty
+    , tasty-golden
+    , tasty-hunit
+    , text
+    , utf8-string
+    , vector
+
+  default-language: GHC2021

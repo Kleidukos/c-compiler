@@ -1,0 +1,4 @@
+packages: ./
+with-compiler: ghc-9.4.4
+tests: True
+test-show-details: direct
