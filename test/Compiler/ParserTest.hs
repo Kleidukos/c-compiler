@@ -122,6 +122,7 @@ stage2Tests =
   [ testCase "Parse bitwise complement" testParseBitwise
   , testCase "Parse arithmetic negation" testParseArithmeticNegation
   , testCase "Nested missing constant" testParseNestedMissingConstant
+  , testCase "Prefix operation in postfix order" testPrefixOperationInPostfixOrder
   ]
 
 testParseBitwise :: Assertion
@@ -168,3 +169,19 @@ testParseNestedMissingConstant = do
 
   parsed
     @?= "1:1:\n  |\n1 |             return !~;\n  | ^\nunexpected !~\nexpecting Expression\n"
+
+testPrefixOperationInPostfixOrder :: Assertion
+testPrefixOperationInPostfixOrder = do
+  parsed <-
+    assertParserLeft $
+      testParser
+        parseStatements
+        [str|
+        int main() {
+            return 4-;
+        }
+        |]
+
+  parsed
+    @?= "1:1:\n  |\n1 |             return 4-;\n  | ^\nunexpected -\nexpecting \";\"\n"
+
