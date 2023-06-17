@@ -11,12 +11,16 @@ data PlumeType
   deriving (Eq, Ord, Show)
 
 data PlumeExpr
-  = PlumeVar Text
-  | PlumeLit PlumeLit
-  | PlumeApp PlumeExpr PlumeExpr
-  | PlumeNegate PlumeExpr
-  | PlumeBitwiseComplement PlumeExpr
-  | PlumeLogicalNegation PlumeExpr
+  = Var Text
+  | Lit PlumeLit
+  | App PlumeExpr PlumeExpr
+  | Negate PlumeExpr
+  | BitwiseComplement PlumeExpr
+  | LogicalNegation PlumeExpr
+  | Addition PlumeExpr PlumeExpr
+  | Multiplication PlumeExpr PlumeExpr
+  | Division PlumeExpr PlumeExpr
+  | Subtraction PlumeExpr PlumeExpr
   deriving (Eq, Ord, Show)
 
 data AST

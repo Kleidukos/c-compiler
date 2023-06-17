@@ -59,7 +59,6 @@ library
     Compiler.Codegen.X86_64
     Compiler.Parser.Helpers
     Compiler.Parser.Lexer
-    Compiler.Parser.MegaParser
     Compiler.Parser.Parser
     Compiler.TypeChecker
     Compiler.Types.AST
@@ -80,13 +79,9 @@ library
     , bytestring
     , containers
     , megaparsec
-    , mtl
     , parser-combinators
     , prettyprinter
-    , PyF
     , text
-    , text-display
-    , transformers
     , vector
 
   default-language:   GHC2021
@@ -118,13 +113,11 @@ test-suite compiler-tests
     , compiler
     , filepath
     , pretty-simple
-    , prettyprinter
     , PyF
     , tasty
     , tasty-golden
     , tasty-hunit
     , text
     , utf8-string
-    , vector
 
   default-language: GHC2021

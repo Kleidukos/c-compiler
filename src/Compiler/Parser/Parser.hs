@@ -50,10 +50,15 @@ parseReturn = do
   pure $ Return result
 
 parseTerm :: Parser PlumeExpr
-parseTerm = label "term" parseNumber
+parseTerm =
+  label "term" $
+    choice
+      [ parseNumber
+      , parens parseExpression
+      ]
 
 parseNumber :: Parser PlumeExpr
-parseNumber = PlumeLit . LitInt <$> integer
+parseNumber = Lit . LitInt <$> integer
 
 parseExpression :: Parser PlumeExpr
 parseExpression = makeExprParser parseTerm operatorTable <?> "Expression"
@@ -62,18 +67,18 @@ operatorTable :: [[Operator Parser PlumeExpr]]
 operatorTable =
   [
     [ -- prefix "+" id
-      prefix TokNegation PlumeNegate
-    , prefix TokLogicalNegation PlumeLogicalNegation
-    , prefix TokTilde PlumeBitwiseComplement
+      prefix TokMinus Negate
+    , prefix TokLogicalNegation LogicalNegation
+    , prefix TokTilde BitwiseComplement
     ]
-    -- ,
-    --   [ binary "*" Multiply
-    --   , binary "/" Divide
-    --   ]
-    -- ,
-    -- [ binary "+" Add
-    -- , binary "-" Subtract
-    -- ]
+  ,
+    [ binary TokMultiplication Multiplication
+    , binary TokDivision Division
+    ]
+  ,
+    [ binary TokAddition Addition
+    , binary TokMinus Subtraction
+    ]
     -- ,
     -- [ binary "==" Equal
     -- , binary "!=" NotEqual
@@ -107,7 +112,9 @@ noParameters = do
 
 parameters :: Parser (Vector Pat)
 parameters = do
+  token TokLParen
   result <- patternVar `sepBy` comma
+  token TokRParen
   pure $ Vector.fromList result
 
 expectedFunctionType :: Parser Text

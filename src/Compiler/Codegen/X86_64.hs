@@ -29,10 +29,13 @@ emitBlock stmts = Vector.foldMap' emit stmts
 
 emitExpr :: PlumeExpr -> Doc ann
 emitExpr = \case
-  PlumeLit lit -> emitLiteral lit
-  PlumeNegate expr -> emitNegate expr
-  PlumeBitwiseComplement expr -> emitBitwiseComplement expr
-  PlumeLogicalNegation expr -> emitLogicalNegation expr
+  Lit lit -> emitLiteral lit
+  Negate expr -> emitNegate expr
+  BitwiseComplement expr -> emitBitwiseComplement expr
+  LogicalNegation expr -> emitLogicalNegation expr
+  Addition leftExpr rightExpr -> undefined
+  Multiplication leftExpr rightExpr -> undefined
+  Division leftExpr rightExpr -> undefined
 
 emitLiteral :: PlumeLit -> Doc ann
 emitLiteral = \case

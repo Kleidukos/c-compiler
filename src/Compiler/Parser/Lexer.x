@@ -36,7 +36,7 @@ $ascdigit  = 0-9
 $unidigit  = []
 $digit     = [$ascdigit $unidigit]
 
-$ascsymbol = [\!\#\$\%\&\*\+\.\/\<\=\>\?\@\\\^\|\-\~]
+$ascsymbol = [\!\#\$\%\&\*\.\/\<\=\>\?\@\\\^\|\-\~]
 $unisymbol = []
 $symbol    = [$ascsymbol $unisymbol] # [$special \_\"\']
 
@@ -55,7 +55,7 @@ $nl        = [\n\r]
 @reservedid = return
 
 @reservedop =
-            ".." | ":" | "::" | "=" | \\ | "|" | "<-" | "->" | "@" | "~" | "=>" | "_" | "-" | "!"
+            ".." | ":" | "::" | "=" | \\ | "|" | "<-" | "->" | "@" | "~" | "=>" | "_" | "-" | "!" | "*" | "/" | "+"
 
 @varid  = $small $idchar*
 @conid  = $large $idchar*
@@ -216,8 +216,11 @@ reservedOpToTok = \case
     "~"  -> TokTilde
     "=>" -> TokPredArrow
     "_"  -> TokUnderscore
-    "-"  -> TokNegation
+    "-"  -> TokMinus
     "!"  -> TokLogicalNegation
+    "+"  -> TokAddition
+    "*"  -> TokMultiplication
+    "/"  -> TokDivision
     str  -> error $ "Compiler.Parser.Lexer.reservedOpToTok: " <>
         "String `" <> show str <> "' is not a reserved operator."
 
@@ -254,7 +257,9 @@ data Token
      | TokTwoDots -- ".."
      | TokColon | TokDoubleColon | TokEqual  | TokLambda
      | TokBar   | TokLArrow      | TokRArrow | TokAt
-     | TokTilde | TokPredArrow   | TokNegation | TokLogicalNegation
+     | TokTilde | TokPredArrow   | TokLogicalNegation
+     | TokAddition | TokMinus | TokMultiplication
+     | TokDivision
 
        -- Other
      | TokVarId      Text
@@ -407,8 +412,11 @@ prettyTok tok = pretty $ case tok of
         TokAt       -> "@"
         TokTilde    -> "~"
         TokPredArrow -> "=>"
-        TokNegation -> "-"
         TokLogicalNegation -> "!"
+        TokAddition -> "+"  
+        TokMinus -> "-"
+        TokMultiplication -> "*"  
+        TokDivision -> "/"  
         TokVarId id           -> id
         TokQualVarId qual id  -> qual <>  "." <> id
         TokConId id           -> id
