@@ -1,4 +1,5 @@
 module TestUtils where
+
 import Compiler.Types.AST
 import Utils
 
@@ -11,10 +12,11 @@ assertParserRight (Left a) = do
   say a
   assertFailure "Test returned Left instead of Right"
 
-assertParserLeft :: HasCallStack => Either b a -> IO b
+assertParserLeft :: (HasCallStack, Show a) => Either b a -> IO b
 assertParserLeft (Left b) = pure b
-assertParserLeft (Right _) = do
-  assertFailure "Test returned Left instead of Right"
+assertParserLeft (Right a) = do
+  say (show a)
+  assertFailure "Test returned Right instead of Left"
 
 assertAST :: HasCallStack => Either String AST -> AST -> IO ()
 assertAST (Right result) expected = result @?= expected

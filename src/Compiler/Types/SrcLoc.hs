@@ -414,7 +414,7 @@ type RealLocated = GenLocated RealSrcSpan
 mapLoc :: (a -> b) -> GenLocated l a -> GenLocated l b
 mapLoc = fmap
 
-mapLocM :: (Monad m) => (a -> m b) -> GenLocated l a -> m (GenLocated l b)
+mapLocM :: Monad m => (a -> m b) -> GenLocated l a -> m (GenLocated l b)
 mapLocM = mapM
 
 unLoc :: GenLocated l a -> a
@@ -440,10 +440,10 @@ addCombinedLoc a b = Located (combineLocs a b)
 
 -- Not a satisfactory general Eq instance
 -- ingores the location and compares the located things.
-eqLocated :: (Eq a) => Located a -> Located a -> Bool
+eqLocated :: Eq a => Located a -> Located a -> Bool
 eqLocated a b = unLoc a == unLoc b
 
 -- Not a satisfactory general Ord instance
 -- ignores the location and compares the located things.
-cmpLocated :: (Ord a) => Located a -> Located a -> Ordering
+cmpLocated :: Ord a => Located a -> Located a -> Ordering
 cmpLocated a b = unLoc a `compare` unLoc b

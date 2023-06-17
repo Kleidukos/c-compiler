@@ -1,27 +1,27 @@
-module Test (
-  (==>),
-  golden,
-  goldenOutput,
-  goldenShow,
-  goldenPShow,
-  CheckOutput (..),
-  assertRight,
-  pShowNoColorIndent2,
-) where
+module Test
+  ( (==>)
+  , golden
+  , goldenOutput
+  , goldenShow
+  , goldenPShow
+  , CheckOutput (..)
+  , assertRight
+  , pShowNoColorIndent2
+  ) where
 
 import Test.Tasty
 import Test.Tasty.Golden
 import Test.Tasty.Golden.Advanced
 import Test.Tasty.HUnit
 
-import Data.ByteString qualified as BS (readFile,writeFile)
+import Data.ByteString qualified as BS (readFile, writeFile)
 import Data.ByteString.UTF8 (ByteString, fromString)
 import Data.Text.Lazy qualified as TL
 import Data.Text.Lazy.Encoding qualified as TL
 import System.FilePath
 
-import Text.Pretty.Simple
 import Data.ByteString (toStrict)
+import Text.Pretty.Simple
 
 (==>) :: (Eq a, Show a) => a -> a -> Assertion
 (==>) = (@?=)
@@ -48,14 +48,12 @@ goldenOutput
   -> IO TestTree
 goldenOutput name dir testee check outputFun = golden name dir testee check outputFun
 
-{- | Test output uses pShowNoColor from pretty-simple.
-use this for tests that should be human readable, which is probably all of them.
--}
+-- | Test output uses pShowNoColor from pretty-simple.
+-- use this for tests that should be human readable, which is probably all of them.
 goldenPShow name dir testee check = golden name dir testee check pShowNoColorIndent2
 
-{- | Test output uses show.
-Try to avoid using this one.
--}
+-- | Test output uses show.
+-- Try to avoid using this one.
 goldenShow name dir testee check = golden name dir testee check show
 
 pShowNoColorIndent2 :: Show a => a -> TL.Text
@@ -66,23 +64,22 @@ pShowNoColorIndent2 =
       , outputOptionsColorOptions = Nothing
       }
 
-{- | Slightly more general driver for golden tests. Also takes a function to convert
-the output of the test to something that can be serialized to a golden file
-(typically String or Text).
--}
-golden ::
-  ByteStringable s =>
-  -- | name of the test tree
-  TestName ->
-  -- | directory to search for tests in
-  FilePath ->
-  -- | function to test
-  (FilePath -> String -> a) ->
-  -- | check if the test should fail fast
-  (a -> CheckOutput) ->
-  -- | function to convert output
-  (a -> s) ->
-  IO TestTree
+-- | Slightly more general driver for golden tests. Also takes a function to convert
+-- the output of the test to something that can be serialized to a golden file
+-- (typically String or Text).
+golden
+  :: ByteStringable s
+  => TestName
+  -- ^ name of the test tree
+  -> FilePath
+  -- ^ directory to search for tests in
+  -> (FilePath -> String -> a)
+  -- ^ function to test
+  -> (a -> CheckOutput)
+  -- ^ check if the test should fail fast
+  -> (a -> s)
+  -- ^ function to convert output
+  -> IO TestTree
 golden name dir testee check display = do
   testFiles <- findByExtension [".hs"] dir
   return $

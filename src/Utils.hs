@@ -8,7 +8,7 @@ import System.IO (stdout)
 
 iforM
   :: forall (m :: Type -> Type) (a :: Type) (b :: Type)
-   . (Monad m)
+   . Monad m
   => [a]
   -> (Int -> a -> m b)
   -> m [b]

@@ -32,6 +32,7 @@ emitExpr = \case
   PlumeLit lit -> emitLiteral lit
   PlumeNegate expr -> emitNegate expr
   PlumeBitwiseComplement expr -> emitBitwiseComplement expr
+  PlumeLogicalNegation expr -> emitLogicalNegation expr
 
 emitLiteral :: PlumeLit -> Doc ann
 emitLiteral = \case
@@ -68,7 +69,7 @@ emitFunction name stmt =
 emitNegate :: PlumeExpr -> Doc ann
 emitNegate expr =
   vcat
-    [ body 
+    [ body
     , "neg" <×> "%eax"
     ]
   where
