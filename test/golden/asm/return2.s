@@ -1,4 +1,4 @@
     .globl main
 main:
-    movl	$2, %eax
+    movq	$2, %rax
     ret

@@ -1,5 +1,5 @@
     .globl main
 main:
-    movl	$12, %eax
-    neg	%eax
+    movq	$12, %rax
+    neg	%rax
     ret

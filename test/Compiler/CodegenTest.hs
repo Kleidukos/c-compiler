@@ -40,6 +40,17 @@ specs =
         diffCmd
         "./test/golden/asm/logicalNegation.s"
         testLogicalNegation
+    , goldenVsStringDiff
+        "Addition"
+        diffCmd
+        "./test/golden/asm/addition.s"
+        testAddition
+
+    , goldenVsStringDiff
+        "Subtraction"
+        diffCmd
+        "./test/golden/asm/subtraction.s"
+        testSubtraction 
     ]
 
 return2Test :: IO LazyByteString
@@ -95,5 +106,33 @@ testLogicalNegation = do
             return !1;
           }
         |]
+
+  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+
+testAddition :: IO LazyByteString
+testAddition = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+            int main() { 
+              return 3 + 2;
+            }
+          |]
+
+  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+
+testSubtraction :: IO LazyByteString
+testSubtraction = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+            int main() { 
+              return 3 - 2;
+            }
+          |]
 
   pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed

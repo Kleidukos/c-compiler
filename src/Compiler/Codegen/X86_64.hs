@@ -33,9 +33,10 @@ emitExpr = \case
   Negate expr -> emitNegate expr
   BitwiseComplement expr -> emitBitwiseComplement expr
   LogicalNegation expr -> emitLogicalNegation expr
-  Addition leftExpr rightExpr -> undefined
-  Multiplication leftExpr rightExpr -> undefined
+  Addition leftExpr rightExpr -> emitAddition leftExpr rightExpr
+  Multiplication leftExpr rightExpr -> emitMultiplication leftExpr rightExpr
   Division leftExpr rightExpr -> undefined
+  Subtraction leftExpr rightExpr -> emitSubtraction leftExpr rightExpr
 
 emitLiteral :: PlumeLit -> Doc ann
 emitLiteral = \case
@@ -45,7 +46,7 @@ emitLiteral = \case
 -- PlumeApp PlumeExpr PlumeExpr
 
 emitNumber :: Integer -> Doc ann
-emitNumber i = "movl" <×> "$" <> pretty i <> ", %eax"
+emitNumber i = "movq" <×> "$" <> pretty i <> ", %rax"
 
 emitReturn :: PlumeExpr -> Doc ann
 emitReturn expr =
@@ -73,7 +74,7 @@ emitNegate :: PlumeExpr -> Doc ann
 emitNegate expr =
   vcat
     [ body
-    , "neg" <×> "%eax"
+    , "neg" <×> "%rax"
     ]
   where
     body = emitExpr expr
@@ -82,7 +83,7 @@ emitBitwiseComplement :: PlumeExpr -> Doc ann
 emitBitwiseComplement expr =
   vcat
     [ body
-    , "not" <×> "%eax"
+    , "not" <×> "%rax"
     ]
   where
     body = emitExpr expr
@@ -91,9 +92,55 @@ emitLogicalNegation :: PlumeExpr -> Doc ann
 emitLogicalNegation expr =
   vcat
     [ body
-    , "cmpl" <×> "$0, %eax"
-    , "movl" <×> "$0, %eax"
+    , "cmpq" <×> "$0, %rax"
+    , "movq" <×> "$0, %rax"
     , "sete" <×> "%al"
     ]
   where
     body = emitExpr expr
+
+emitAddition :: PlumeExpr -> PlumeExpr -> Doc ann
+emitAddition leftExpr rightExpr =
+  vcat
+    [ "# left operand"
+    , leftBody
+    , "push" <×> "%rax # save value of left operand on the stack"
+    , "# right operand"
+    , rightBody
+    , "pop" <×> "%rcx # pop left operand from the stack into %rcx"
+    , "addq" <×> "%rcx, %rax # add left operand to right operand, save result in %rax"
+    ]
+  where
+    leftBody = emitExpr leftExpr
+    rightBody = emitExpr rightExpr
+
+emitMultiplication :: PlumeExpr -> PlumeExpr -> Doc ann
+emitMultiplication leftExpr rightExpr = do
+  vcat
+    [ "# left operand"
+    , leftBody
+    , "push" <×> "%rax # save value of left operand on the stack"
+    , "# right operand"
+    , rightBody
+    , "pop" <×> "%rcx # pop left operand from the stack into %rcx"
+    , "imuq" <×> "%rcx, %rax # multiply left operand by right operand, save result in %rax"
+    ]
+  where
+    leftBody = emitExpr leftExpr
+    rightBody = emitExpr rightExpr
+
+emitSubtraction :: PlumeExpr -> PlumeExpr -> Doc ann
+emitSubtraction leftExpr rightExpr = do
+  vcat
+    [ "# right operand"
+    , rightBody
+    , "push" <×> "%rax # save value of right operand on the stack"
+    , "# left operand"
+    , leftBody
+    , "pop" <×> "%rcx # pop right operand from the stack into %rcx"
+    , "subq" <×> "%rcx, %rax # subtract right from left (that is in %rax), save result in %rax"
+    ]
+  where
+    leftBody = emitExpr leftExpr
+    rightBody = emitExpr rightExpr
+

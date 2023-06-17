@@ -103,6 +103,7 @@ test-suite compiler-tests
   main-is:          Main.hs
   other-modules:
     Compiler.CodegenTest
+    Compiler.ParserTest
     TestUtils
 
   hs-source-dirs:   test

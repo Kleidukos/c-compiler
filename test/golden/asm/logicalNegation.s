@@ -1,7 +1,7 @@
     .globl main
 main:
-    movl	$1, %eax
-    cmpl	$0, %eax
-    movl	$0, %eax
+    movq	$1, %rax
+    cmpq	$0, %rax
+    movq	$0, %rax
     sete	%al
     ret
