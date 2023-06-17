@@ -45,18 +45,21 @@ specs =
         diffCmd
         "./test/golden/asm/addition.s"
         testAddition
-
     , goldenVsStringDiff
         "Subtraction"
         diffCmd
         "./test/golden/asm/subtraction.s"
-        testSubtraction 
-
+        testSubtraction
     , goldenVsStringDiff
         "Division"
         diffCmd
         "./test/golden/asm/division.s"
-        testDivision 
+        testDivision
+    , goldenVsStringDiff
+        "Lower Than Comparison"
+        diffCmd
+        "./test/golden/asm/lowerthan.s"
+        testLowerThan
     ]
 
 return2Test :: IO LazyByteString
@@ -152,6 +155,20 @@ testDivision = do
         [str|
             int main() { 
               return 10 / 2;
+            }
+          |]
+
+  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+
+testLowerThan :: IO LazyByteString
+testLowerThan = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+            int main() { 
+              return 10 < 2;
             }
           |]
 

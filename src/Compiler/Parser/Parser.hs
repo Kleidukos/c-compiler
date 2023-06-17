@@ -79,10 +79,20 @@ operatorTable =
     [ binary TokAddition Addition
     , binary TokMinus Subtraction
     ]
-    -- ,
-    -- [ binary "==" Equal
-    -- , binary "!=" NotEqual
-    -- ]
+  ,
+    [ binary TokLessThan LessThan
+    , binary TokLessThanOrEqual LessThanOrEqual
+    , binary TokGreaterThan GreaterThan
+    , binary TokGreaterThanOrEqual GreaterThanOrEqual
+    ]
+  ,
+    [ binary TokDoubleEqual Equal
+    , binary TokNotEqual NotEqual
+    ]
+  ,
+    [ binary TokAnd And
+    , binary TokOr Or
+    ]
   ]
 
 binary :: Token -> (PlumeExpr -> PlumeExpr -> PlumeExpr) -> Operator Parser PlumeExpr

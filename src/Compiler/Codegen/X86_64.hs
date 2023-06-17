@@ -2,13 +2,23 @@
 
 module Compiler.Codegen.X86_64 where
 
-import Compiler.Types.AST
 import Data.Text (Text)
 import Data.Vector (Vector)
 import Data.Vector qualified as Vector
 import Prettyprinter
 import Prettyprinter.Render.Text (renderStrict)
+
+import Compiler.Types.AST
 import Utils.Output
+
+data PlumeOrdering
+  = PlumeGT
+  | PlumeGTE
+  | PlumeLT
+  | PlumeLTE
+  | PlumeEQ
+  | PlumeNE
+  deriving stock (Eq, Ord, Show)
 
 runCodegen :: AST -> Text
 runCodegen ast =
@@ -37,6 +47,10 @@ emitExpr = \case
   Multiplication leftExpr rightExpr -> emitMultiplication leftExpr rightExpr
   Division leftExpr rightExpr -> emitDivision leftExpr rightExpr
   Subtraction leftExpr rightExpr -> emitSubtraction leftExpr rightExpr
+  LessThan leftExpr rightExpr -> emitComparison PlumeLT leftExpr rightExpr
+  LessThanOrEqual leftExpr rightExpr -> emitComparison PlumeLTE leftExpr rightExpr
+  GreaterThan leftExpr rightExpr -> emitComparison PlumeGT leftExpr rightExpr
+  GreaterThanOrEqual leftExpr rightExpr -> emitComparison PlumeGTE leftExpr rightExpr
 
 emitLiteral :: PlumeLit -> Doc ann
 emitLiteral = \case
@@ -106,7 +120,7 @@ emitAddition leftExpr rightExpr =
     , "push" <×> "%rax # save value of left operand on the stack"
     , "# right operand"
     , rightBody
-    , "pop" <×> "%rcx # pop left operand from the stack into %rcx"
+    , "pop " <×> "%rcx # pop left operand from the stack into %rcx"
     , "addq" <×> "%rcx, %rax # add left operand to right operand, save result in %rax"
     ]
   where
@@ -114,14 +128,14 @@ emitAddition leftExpr rightExpr =
     rightBody = emitExpr rightExpr
 
 emitMultiplication :: PlumeExpr -> PlumeExpr -> Doc ann
-emitMultiplication leftExpr rightExpr = do
+emitMultiplication leftExpr rightExpr = 
   vcat
     [ "# left operand"
     , leftBody
     , "push" <×> "%rax # save value of left operand on the stack"
     , "# right operand"
     , rightBody
-    , "pop" <×> "%rcx # pop left operand from the stack into %rcx"
+    , "pop " <×> "%rcx # pop left operand from the stack into %rcx"
     , "imuq" <×> "%rcx, %rax # multiply left operand by right operand, save result in %rax"
     ]
   where
@@ -129,14 +143,14 @@ emitMultiplication leftExpr rightExpr = do
     rightBody = emitExpr rightExpr
 
 emitSubtraction :: PlumeExpr -> PlumeExpr -> Doc ann
-emitSubtraction leftExpr rightExpr = do
+emitSubtraction leftExpr rightExpr = 
   vcat
     [ "# right operand"
     , rightBody
     , "push" <×> "%rax # save value of right operand on the stack"
     , "# left operand"
     , leftBody
-    , "pop" <×> "%rcx # pop right operand from the stack into %rcx"
+    , "pop " <×> "%rcx # pop right operand from the stack into %rcx"
     , "subq" <×> "%rcx, %rax # subtract right from left (that is in %rax), save result in %rax"
     ]
   where
@@ -144,17 +158,41 @@ emitSubtraction leftExpr rightExpr = do
     rightBody = emitExpr rightExpr
 
 emitDivision :: PlumeExpr -> PlumeExpr -> Doc ann
-emitDivision leftExpr rightExpr = do
+emitDivision leftExpr rightExpr = 
   vcat
     [ "# right operand"
     , rightBody
     , "push" <×> "%rax # save value of right operand on the stack"
     , "# left operand"
     , leftBody
-    , "pop" <×> "%rcx # pop right operand from the stack into %rcx"
+    , "pop " <×> "%rcx # pop right operand from the stack into %rcx"
     , "cdq"
     , "idivq" <×> "%rcx # divide left by right (that is in %rax), save result in %rax"
     ]
   where
+    leftBody = emitExpr leftExpr
+    rightBody = emitExpr rightExpr
+
+emitComparison :: PlumeOrdering -> PlumeExpr -> PlumeExpr -> Doc ann
+emitComparison ordering leftExpr rightExpr =
+  vcat
+    [ "# left operand"
+    , leftBody
+    , "push" <×> "%rax"
+    , "# right operand"
+    , rightBody
+    , "pop " <×> "%rcx # pop left from the stack into %rcx, right is already in %eax"
+    , "cmpq" <×> "%rax, %rcx # set ZF on, if left == right, set if off otherwise" 
+    , "movq" <×> "$0, %rax # zero out %rax"
+    , op <×> "%al # set %al (lower byte of %rax) to 1 iff ZF is on"
+    ]
+  where
+    op = case ordering of
+          PlumeGT -> "setg"
+          PlumeGTE -> "setge"
+          PlumeLT -> "setl"
+          PlumeLTE -> "setle"
+          PlumeEQ -> "sete"
+          PlumeNE -> "setne"
     leftBody = emitExpr leftExpr
     rightBody = emitExpr rightExpr

@@ -21,6 +21,14 @@ data PlumeExpr
   | Multiplication PlumeExpr PlumeExpr
   | Division PlumeExpr PlumeExpr
   | Subtraction PlumeExpr PlumeExpr
+  | And PlumeExpr PlumeExpr
+  | Or PlumeExpr PlumeExpr
+  | Equal PlumeExpr PlumeExpr
+  | NotEqual PlumeExpr PlumeExpr
+  | LessThan PlumeExpr PlumeExpr
+  | LessThanOrEqual PlumeExpr PlumeExpr
+  | GreaterThan PlumeExpr PlumeExpr
+  | GreaterThanOrEqual PlumeExpr PlumeExpr
   deriving (Eq, Ord, Show)
 
 data AST

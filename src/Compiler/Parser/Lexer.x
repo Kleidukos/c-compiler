@@ -54,8 +54,11 @@ $nl        = [\n\r]
 
 @reservedid = return
 
-@reservedop =
-            ".." | ":" | "::" | "=" | \\ | "|" | "<-" | "->" | "@" | "~" | "=>" | "_" | "-" | "!" | "*" | "/" | "+"
+@reservedop = ".." | ":"  | "::" | "=="  | \\ 
+            | "|"  | "<-" | "->" | "@"  | "~"
+            | "=>" | "_"  | "-"  | "!"  | "*" 
+            | "/"  | "+"  | "&&" | "||" | "="
+            | "<"  | ">"  | "<=" | ">=" | "!="
 
 @varid  = $small $idchar*
 @conid  = $large $idchar*
@@ -221,6 +224,15 @@ reservedOpToTok = \case
     "+"  -> TokAddition
     "*"  -> TokMultiplication
     "/"  -> TokDivision
+    "&&" -> TokAnd
+    "||" -> TokOr
+    "==" -> TokDoubleEqual
+    "!=" -> TokNotEqual
+    "<"  -> TokLessThan
+    "<=" -> TokLessThanOrEqual 
+    ">"  -> TokGreaterThan
+    ">=" -> TokGreaterThanOrEqual 
+
     str  -> error $ "Compiler.Parser.Lexer.reservedOpToTok: " <>
         "String `" <> show str <> "' is not a reserved operator."
 
@@ -259,7 +271,9 @@ data Token
      | TokBar   | TokLArrow      | TokRArrow | TokAt
      | TokTilde | TokPredArrow   | TokLogicalNegation
      | TokAddition | TokMinus | TokMultiplication
-     | TokDivision
+     | TokDivision | TokAnd | TokOr | TokDoubleEqual 
+     | TokNotEqual | TokLessThan | TokLessThanOrEqual 
+     | TokGreaterThan | TokGreaterThanOrEqual 
 
        -- Other
      | TokVarId      Text
@@ -418,6 +432,15 @@ prettyTok tok = pretty $ case tok of
         TokMultiplication -> "*"  
         TokDivision -> "/"  
         TokVarId id           -> id
+        TokAnd -> "&&" 
+        TokOr -> "||"
+        TokDoubleEqual -> "=="
+        TokNotEqual -> "!="
+        TokLessThan -> "<"
+        TokLessThanOrEqual -> "<="
+        TokGreaterThan -> ">"
+        TokGreaterThanOrEqual -> ">="
+
         TokQualVarId qual id  -> qual <>  "." <> id
         TokConId id           -> id
         TokQualConId qual id  -> qual <>  "." <> id

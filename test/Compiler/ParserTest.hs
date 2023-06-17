@@ -17,6 +17,7 @@ specs =
     [ testGroup "Stage 1" stage1Tests
     , testGroup "Stage 2" stage2Tests
     , testGroup "Stage 3" stage3Tests
+    , testGroup "Stage 4" stage4Tests
     ]
 
 stage1Tests :: [TestTree]
@@ -221,7 +222,35 @@ parseMixedOperators = do
     assertParserRight $
       testParser
         parseExpression
-        [str| ~2 + 4) |]
+        [str| ~2 + 4 |]
 
   parsed
     @?= Addition (BitwiseComplement (Lit (LitInt 2))) (Lit (LitInt 4))
+
+stage4Tests :: [TestTree]
+stage4Tests =
+  [ testCase "Binary comparison" testParseBinaryComparison
+  , testCase "Boolean AND and OR" testParseBooleanLogic
+  ]
+
+testParseBinaryComparison :: Assertion
+testParseBinaryComparison = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseExpression
+        [str| (~2 + 4) >= 2 |]
+
+  parsed
+    @?= GreaterThanOrEqual (Addition (BitwiseComplement (Lit (LitInt 2))) (Lit (LitInt 4))) (Lit (LitInt 2))
+
+testParseBooleanLogic :: Assertion
+testParseBooleanLogic = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseExpression
+        [str| (0 && 1) || 1 |]
+
+  parsed
+    @?= Or (And (Lit (LitInt 0)) (Lit (LitInt 1))) (Lit (LitInt 1))
