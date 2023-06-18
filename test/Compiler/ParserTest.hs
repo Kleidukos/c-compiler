@@ -18,6 +18,7 @@ specs =
     , testGroup "Stage 2" stage2Tests
     , testGroup "Stage 3" stage3Tests
     , testGroup "Stage 4" stage4Tests
+    , testGroup "Stage 5" stage5Tests
     ]
 
 stage1Tests :: [TestTree]
@@ -43,7 +44,7 @@ testMultiDigitReturn = do
         |]
 
   parsed
-    @?= Block [Fun "main" [] (Return (Lit (LitInt 100)))]
+    @?= Block [Fun "main" [] (Block [Return (Lit (LitInt 100))])]
 
 testBunchOfNewlines :: Assertion
 testBunchOfNewlines = do
@@ -64,7 +65,7 @@ testBunchOfNewlines = do
         |]
 
   parsed
-    @?= Block [Fun "main" [] (Return (Lit (LitInt 0)))]
+    @?= Block [Fun "main" [] (Block [Return (Lit (LitInt 0))])]
 
 testNoNewlines :: Assertion
 testNoNewlines = do
@@ -75,7 +76,7 @@ testNoNewlines = do
         [str|int main(){return 0;}|]
 
   parsed
-    @?= Block [Fun "main" [] (Return (Lit (LitInt 0)))]
+    @?= Block [Fun "main" [] (Block [Return (Lit (LitInt 0))])]
 
 testMissingClosingParen :: Assertion
 testMissingClosingParen = do
@@ -117,7 +118,7 @@ testMissingClosingBrace = do
         |]
 
   parsed
-    @?= "1:1:\nunexpected end of input\nexpecting \"}\"\n"
+    @?= "1:1:\nunexpected end of input\nexpecting \"}\", Assignment, Function, or Return\n"
 
 stage2Tests :: [TestTree]
 stage2Tests =
@@ -140,7 +141,7 @@ testParseBitwise = do
         |]
 
   parsed
-    @?= Block [Fun "main" [] (Return (BitwiseComplement (Lit (LitInt 12))))]
+    @?= Block [Fun "main" [] (Block [Return (BitwiseComplement (Lit (LitInt 12)))])]
 
 testParseArithmeticNegation :: Assertion
 testParseArithmeticNegation = do
@@ -155,7 +156,7 @@ testParseArithmeticNegation = do
         |]
 
   parsed
-    @?= Block [Fun "main" [] (Return (Negate (Lit (LitInt 12))))]
+    @?= Block [Fun "main" [] (Block [Return (Negate (Lit (LitInt 12)))])]
 
 testParseNestedMissingConstant :: Assertion
 testParseNestedMissingConstant = do
@@ -231,6 +232,7 @@ stage4Tests :: [TestTree]
 stage4Tests =
   [ testCase "Binary comparison" testParseBinaryComparison
   , testCase "Boolean AND and OR" testParseBooleanLogic
+  , testCase "Chained operators" testChainedOperators
   ]
 
 testParseBinaryComparison :: Assertion
@@ -254,3 +256,56 @@ testParseBooleanLogic = do
 
   parsed
     @?= Or (And (Lit (LitInt 0)) (Lit (LitInt 1))) (Lit (LitInt 1))
+
+testChainedOperators :: Assertion
+testChainedOperators = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+        int main() {
+            return 1 || 0 && 2;
+        }
+        |]
+
+  parsed
+    @?= Block
+      [ Fun
+          "main"
+          []
+          ( Block
+              [ Return (And (Or (Lit (LitInt 1)) (Lit (LitInt 0))) (Lit (LitInt 2)))
+              ]
+          )
+      ]
+
+stage5Tests :: [TestTree]
+stage5Tests =
+  [ testCase "Parse assignment" parseAssignment
+  ]
+
+parseAssignment :: Assertion
+parseAssignment = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+        int main() {
+            int a = 3;
+            return a * 2;
+        }
+        |]
+
+  parsed
+    @?= Block
+      [ Fun
+          "main"
+          []
+          ( Block
+              [ Let "a" (Lit (LitInt 3))
+              , Return (Multiplication (Var "a") (Lit (LitInt 2)))
+              ]
+          )
+      ]

@@ -11,7 +11,7 @@ data PlumeType
   deriving (Eq, Ord, Show)
 
 data PlumeExpr
-  = Var Text
+  = Var PlumeName
   | Lit PlumeLit
   | App PlumeExpr PlumeExpr
   | Negate PlumeExpr
@@ -32,9 +32,9 @@ data PlumeExpr
   deriving (Eq, Ord, Show)
 
 data AST
-  = Let PlumeExpr
+  = Let Text PlumeExpr
   | Return PlumeExpr
-  | Fun Text (Vector Pat) AST
+  | Fun PlumeType (Vector Pat) AST
   | Block (Vector AST)
   deriving (Eq, Ord, Show)
 

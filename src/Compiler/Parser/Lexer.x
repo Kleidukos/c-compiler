@@ -54,9 +54,9 @@ $nl        = [\n\r]
 
 @reservedid = return
 
-@reservedop = ".." | ":"  | "::" | "=="  | \\ 
+@reservedop = ".." | ":"  | "::" | "=="  | \\
             | "|"  | "<-" | "->" | "@"  | "~"
-            | "=>" | "_"  | "-"  | "!"  | "*" 
+            | "=>" | "_"  | "-"  | "!"  | "*"
             | "/"  | "+"  | "&&" | "||" | "="
             | "<"  | ">"  | "<=" | ">=" | "!="
 
@@ -200,7 +200,7 @@ mkSpecialTok srcSpan src = Located srcSpan $ case src of
 mkReservedIdTok srcSpan src = Located srcSpan $ reservedIdToTok src
 
 reservedIdToTok = \case
-    "return"    -> TokReturn
+    "return" -> TokReturn
     str        -> error $ "Compiler.Parser.Lexer.reservedIdToTok: " <>
         "String `" <> show str <> "' is not a reserved word."
 
@@ -210,7 +210,7 @@ reservedOpToTok = \case
     ".." -> TokTwoDots
     ":"  -> TokColon
     "::" -> TokDoubleColon
-    "="  -> TokEqual
+    "="  -> TokAssignment
     "\\" -> TokLambda
     "|"  -> TokBar
     "<-" -> TokLArrow
@@ -226,12 +226,12 @@ reservedOpToTok = \case
     "/"  -> TokDivision
     "&&" -> TokAnd
     "||" -> TokOr
-    "==" -> TokDoubleEqual
+    "==" -> TokEqual
     "!=" -> TokNotEqual
     "<"  -> TokLessThan
-    "<=" -> TokLessThanOrEqual 
+    "<=" -> TokLessThanOrEqual
     ">"  -> TokGreaterThan
-    ">=" -> TokGreaterThanOrEqual 
+    ">=" -> TokGreaterThanOrEqual
 
     str  -> error $ "Compiler.Parser.Lexer.reservedOpToTok: " <>
         "String `" <> show str <> "' is not a reserved operator."
@@ -260,20 +260,19 @@ data Token
        -- Reserved Words
      | TokCase   | TokClass   | TokData   | TokDefault  | TokDeriving
      | TokDo     | TokElse    | TokIf     | TokImport   | TokIn
-     | TokInfix  | TokInfixL  | TokInfixR | TokInstance | TokLet
+     | TokInfix  | TokInfixL  | TokInfixR | TokInstance
      | TokModule | TokNewtype | TokOf     | TokThen     | TokType
-     | TokWhere
-     | TokReturn
+     | TokWhere  | TokReturn
 
        -- Reserved Operators
      | TokTwoDots -- ".."
-     | TokColon | TokDoubleColon | TokEqual  | TokLambda
+     | TokColon | TokDoubleColon | TokAssignment  | TokLambda
      | TokBar   | TokLArrow      | TokRArrow | TokAt
      | TokTilde | TokPredArrow   | TokLogicalNegation
      | TokAddition | TokMinus | TokMultiplication
-     | TokDivision | TokAnd | TokOr | TokDoubleEqual 
-     | TokNotEqual | TokLessThan | TokLessThanOrEqual 
-     | TokGreaterThan | TokGreaterThanOrEqual 
+     | TokDivision | TokAnd | TokOr | TokEqual
+     | TokNotEqual | TokLessThan | TokLessThanOrEqual
+     | TokGreaterThan | TokGreaterThanOrEqual
 
        -- Other
      | TokVarId      Text
@@ -407,7 +406,6 @@ prettyTok tok = pretty $ case tok of
         TokInfixL   -> "infixl"
         TokInfixR   -> "infixr"
         TokInstance -> "instance"
-        TokLet      -> "let"
         TokModule   -> "module"
         TokNewtype  -> "newtype"
         TokOf       -> "of"
@@ -418,7 +416,7 @@ prettyTok tok = pretty $ case tok of
         TokTwoDots  -> ".."
         TokColon    -> ":"
         TokDoubleColon -> "::"
-        TokEqual    -> "="
+        TokAssignment -> "="
         TokLambda   -> "\\"
         TokBar      -> "|"
         TokLArrow   -> "<-"
@@ -427,14 +425,14 @@ prettyTok tok = pretty $ case tok of
         TokTilde    -> "~"
         TokPredArrow -> "=>"
         TokLogicalNegation -> "!"
-        TokAddition -> "+"  
+        TokAddition -> "+"
         TokMinus -> "-"
-        TokMultiplication -> "*"  
-        TokDivision -> "/"  
+        TokMultiplication -> "*"
+        TokDivision -> "/"
         TokVarId id           -> id
-        TokAnd -> "&&" 
+        TokAnd -> "&&"
         TokOr -> "||"
-        TokDoubleEqual -> "=="
+        TokEqual -> "=="
         TokNotEqual -> "!="
         TokLessThan -> "<"
         TokLessThanOrEqual -> "<="

@@ -10,6 +10,9 @@ data PlumeName = PlumeName
 
 data NameSort
   = ModuleInternal
+    -- ^ Defined in the module/file
   | ModuleExternal
+    -- ^ Taken from outside of the module/file
   | System
+    -- ^ Wired-in
   deriving stock (Eq, Ord, Show, Enum, Bounded)

@@ -359,7 +359,7 @@ prettyUserLoc _ (UnhelpfulLoc l) = pretty l
 prettyUserLoc showPath (RealSrcLoc l) = prettyUserRealLoc showPath l
 
 prettyUserRealLoc :: Bool -> RealSrcLoc -> Doc ann
-prettyUserRealLoc showPath loc@(SrcLoc file line col) =
+prettyUserRealLoc showPath (SrcLoc file line col) =
   prettyWhen showPath (pretty file <> colon) <> pretty line <> colon <> pretty col
 
 prettyUserSpan :: Bool -> SrcSpan -> Doc ann

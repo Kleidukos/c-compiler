@@ -2,7 +2,6 @@ module Compiler.Parser.Parser where
 
 import Prelude hiding (lex)
 
-import Data.Text (Text)
 import Data.Vector qualified as Vector
 import Prettyprinter ()
 import Text.Megaparsec hiding (State, Token, parse, satisfy, token)
@@ -12,6 +11,7 @@ import Compiler.Parser.Lexer
 import Compiler.Types.AST
 import Control.Monad.Combinators.Expr
 import Data.Vector (Vector)
+import Compiler.Types.Name
 
 parse
   :: Parser a
@@ -34,13 +34,13 @@ testParser p = parse p ""
 parseStatements :: Parser AST
 parseStatements = do
   stmts <- many parseStatement
-  eof
   pure (Block (Vector.fromList stmts))
 
 parseStatement :: Parser AST
 parseStatement =
-  parseFunction
-    <|> parseReturn
+  try (parseAssignment <?> "Assignment")
+    <|> (parseFunction <?> "Function")
+    <|> (parseReturn <?> "Return")
 
 parseReturn :: Parser AST
 parseReturn = do
@@ -49,12 +49,22 @@ parseReturn = do
   semicolon
   pure $ Return result
 
+parseAssignment :: Parser AST
+parseAssignment = do
+  declarationType
+  name <- varId
+  token TokAssignment
+  body <- parseTerm
+  semicolon
+  pure $ Let name body
+
 parseTerm :: Parser PlumeExpr
 parseTerm =
   label "term" $
     choice
       [ parseNumber
       , parens parseExpression
+      , parseIdentifier
       ]
 
 parseNumber :: Parser PlumeExpr
@@ -86,7 +96,7 @@ operatorTable =
     , binary TokGreaterThanOrEqual GreaterThanOrEqual
     ]
   ,
-    [ binary TokDoubleEqual Equal
+    [ binary TokEqual Equal
     , binary TokNotEqual NotEqual
     ]
   ,
@@ -103,32 +113,40 @@ prefix name f = Prefix (f <$ token name)
 
 parseFunction :: Parser AST
 parseFunction = do
-  varId <?> "function type"
-  funId <- varId <?> "function name"
+  declarationType
+  funId <- declarationType
   parsedParams <- parseParameters
-  result <- braces parseStatement
+  result <- braces parseStatements
   pure $ Fun funId parsedParams result
 
 parseParameters :: Parser (Vector Pat)
 parseParameters =
-  label "parameter" $
-    noParameters <|> parameters
+  noParameters <|> parameters
 
 noParameters :: Parser (Vector a)
-noParameters = do
+noParameters = label "no parameters" $ do
   token TokLParen
   token TokRParen
   pure mempty
 
 parameters :: Parser (Vector Pat)
-parameters = do
+parameters = label "parameters" $ do
   token TokLParen
   result <- patternVar `sepBy` comma
   token TokRParen
   pure $ Vector.fromList result
 
-expectedFunctionType :: Parser Text
-expectedFunctionType = varId
+declarationType :: Parser PlumeType
+declarationType =
+  label "function type" $ do
+    name <- varId
+    let nameSort = ModuleInternal
+    pure $ VarType PlumeName{..}
 
 patternVar :: Parser Pat
 patternVar = PatternVar <$> varId
+
+parseIdentifier :: Parser PlumeExpr
+parseIdentifier =
+  label "identifier" $ do
+    Var <$> varId

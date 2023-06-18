@@ -1,3 +1,14 @@
-# ProtoHaskell
+# A C compiler
 
-This repo contains a fork of [ProtoHaskell](https://github.com/JKTKops/ProtoHaskell/) for my own exploratory work.
+## TODO
+
+- [ ] Include more names:
+    * [ ] ParsedName from the parser
+    * [ ] OccName to back the ParsedName
+    * [ ] PlumeName for after the renaming pass
+
+- [ ] Renamer
+    * [ ] out-of-scope bindings
+    * [ ] unused bindings
+    * [ ] duplicate declarations
+    * [ ] prepare the plume types map for the typechecker
