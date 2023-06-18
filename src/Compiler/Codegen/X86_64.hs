@@ -9,7 +9,18 @@ import Prettyprinter
 import Prettyprinter.Render.Text (renderStrict)
 
 import Compiler.Types.AST
+import Control.Concurrent
+import Data.Function
+import Effectful
+import Effectful.Reader.Static (Reader, runReader)
 import Utils.Output
+
+data CodeGenEnv = CodeGenEnv
+  { labelCounter :: Word
+  }
+  deriving stock (Eq, Ord, Show)
+
+type CodeGenM a = Eff '[Reader (MVar CodeGenEnv), IOE] a
 
 data PlumeOrdering
   = PlumeGT
@@ -20,24 +31,33 @@ data PlumeOrdering
   | PlumeNE
   deriving stock (Eq, Ord, Show)
 
-runCodegen :: AST -> Text
-runCodegen ast =
-  let doc = emit ast <> "\n"
-   in renderStrict $
-        layoutPretty
-          (defaultLayoutOptions{layoutPageWidth = Unbounded})
-          doc
+runCodeGen :: AST -> IO Text
+runCodeGen ast = do
+  env <- newCodeGenEnv
+  let action = emit ast
+  doc <-
+    action
+      & runReader env
+      & runEff
+  pure $
+    renderStrict $
+      layoutPretty
+        (defaultLayoutOptions{layoutPageWidth = Unbounded})
+        (doc <> "\n")
 
-emit :: AST -> Doc ann
+newCodeGenEnv :: IO (MVar CodeGenEnv)
+newCodeGenEnv = newMVar (CodeGenEnv{labelCounter = 0})
+
+emit :: AST -> CodeGenM (Doc ann)
 emit = \case
   Fun name _ body -> emitFunction name body
   Return expr -> emitReturn expr
   Block exprs -> emitBlock exprs
 
-emitBlock :: Vector AST -> Doc ann
+emitBlock :: Vector AST -> CodeGenM (Doc ann)
 emitBlock stmts = Vector.foldMap' emit stmts
 
-emitExpr :: PlumeExpr -> Doc ann
+emitExpr :: PlumeExpr -> CodeGenM (Doc ann)
 emitExpr = \case
   Lit lit -> emitLiteral lit
   Negate expr -> emitNegate expr
@@ -52,147 +72,151 @@ emitExpr = \case
   GreaterThan leftExpr rightExpr -> emitComparison PlumeGT leftExpr rightExpr
   GreaterThanOrEqual leftExpr rightExpr -> emitComparison PlumeGTE leftExpr rightExpr
 
-emitLiteral :: PlumeLit -> Doc ann
+emitLiteral :: PlumeLit -> CodeGenM (Doc ann)
 emitLiteral = \case
   LitInt i -> emitNumber i
 
 -- PlumeVar t ->
 -- PlumeApp PlumeExpr PlumeExpr
 
-emitNumber :: Integer -> Doc ann
-emitNumber i = "movq" <×> "$" <> pretty i <> ", %rax"
+emitNumber :: Integer -> CodeGenM (Doc ann)
+emitNumber i = pure $ "movq" <×> "$" <> pretty i <> ", %rax"
 
-emitReturn :: PlumeExpr -> Doc ann
-emitReturn expr =
-  let body = emitExpr expr
-   in vcat
-        [ body
-        , "ret"
-        ]
+emitReturn :: PlumeExpr -> CodeGenM (Doc ann)
+emitReturn expr = do
+  (body :: Doc ann) <- emitExpr expr
+  pure $
+    vcat
+      [ body
+      , "ret"
+      ]
 
-emitFunction :: Text -> AST -> Doc ann
-emitFunction name stmt =
-  vcat
-    [ indent 4 ".globl " <> pretty functionName
-    , pretty functionName <> ":"
-    , indent 4 result
-    ]
+emitFunction :: Text -> AST -> CodeGenM (Doc ann)
+emitFunction name stmt = do
+  result <- emit stmt
+  pure $
+    vcat
+      [ indent 4 ".globl " <> pretty functionName
+      , pretty functionName <> ":"
+      , indent 4 result
+      ]
   where
-    result = emit stmt
-    functionName =
+    functionName = do
       if name == "main"
         then "main"
         else "_" <> name
 
-emitNegate :: PlumeExpr -> Doc ann
-emitNegate expr =
-  vcat
-    [ body
-    , "neg" <×> "%rax"
-    ]
-  where
-    body = emitExpr expr
+emitNegate :: PlumeExpr -> CodeGenM (Doc ann)
+emitNegate expr = do
+  body <- emitExpr expr
+  pure $
+    vcat
+      [ body
+      , "neg" <×> "%rax"
+      ]
 
-emitBitwiseComplement :: PlumeExpr -> Doc ann
-emitBitwiseComplement expr =
-  vcat
-    [ body
-    , "not" <×> "%rax"
-    ]
-  where
-    body = emitExpr expr
-emitLogicalNegation :: PlumeExpr -> Doc ann
-emitLogicalNegation expr =
-  vcat
-    [ body
-    , "cmpq" <×> "$0, %rax"
-    , "movq" <×> "$0, %rax"
-    , "sete" <×> "%al"
-    ]
-  where
-    body = emitExpr expr
+emitBitwiseComplement :: PlumeExpr -> CodeGenM (Doc ann)
+emitBitwiseComplement expr = do
+  body <- emitExpr expr
+  pure $
+    vcat
+      [ body
+      , "not" <×> "%rax"
+      ]
 
-emitAddition :: PlumeExpr -> PlumeExpr -> Doc ann
-emitAddition leftExpr rightExpr =
-  vcat
-    [ "# left operand"
-    , leftBody
-    , "push" <×> "%rax # save value of left operand on the stack"
-    , "# right operand"
-    , rightBody
-    , "pop " <×> "%rcx # pop left operand from the stack into %rcx"
-    , "addq" <×> "%rcx, %rax # add left operand to right operand, save result in %rax"
-    ]
-  where
-    leftBody = emitExpr leftExpr
-    rightBody = emitExpr rightExpr
+emitLogicalNegation :: PlumeExpr -> CodeGenM (Doc ann)
+emitLogicalNegation expr = do
+  body <- emitExpr expr
+  pure $
+    vcat
+      [ body
+      , "cmpq" <×> "$0, %rax"
+      , "movq" <×> "$0, %rax"
+      , "sete" <×> "%al"
+      ]
 
-emitMultiplication :: PlumeExpr -> PlumeExpr -> Doc ann
-emitMultiplication leftExpr rightExpr = 
-  vcat
-    [ "# left operand"
-    , leftBody
-    , "push" <×> "%rax # save value of left operand on the stack"
-    , "# right operand"
-    , rightBody
-    , "pop " <×> "%rcx # pop left operand from the stack into %rcx"
-    , "imuq" <×> "%rcx, %rax # multiply left operand by right operand, save result in %rax"
-    ]
-  where
-    leftBody = emitExpr leftExpr
-    rightBody = emitExpr rightExpr
+emitAddition :: PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitAddition leftExpr rightExpr = do
+  leftBody <- emitExpr leftExpr
+  rightBody <- emitExpr rightExpr
+  pure $
+    vcat
+      [ "# left operand"
+      , leftBody
+      , "push" <×> "%rax # save value of left operand on the stack"
+      , "# right operand"
+      , rightBody
+      , "pop " <×> "%rcx # pop left operand from the stack into %rcx"
+      , "addq" <×> "%rcx, %rax # add left operand to right operand, save result in %rax"
+      ]
 
-emitSubtraction :: PlumeExpr -> PlumeExpr -> Doc ann
-emitSubtraction leftExpr rightExpr = 
-  vcat
-    [ "# right operand"
-    , rightBody
-    , "push" <×> "%rax # save value of right operand on the stack"
-    , "# left operand"
-    , leftBody
-    , "pop " <×> "%rcx # pop right operand from the stack into %rcx"
-    , "subq" <×> "%rcx, %rax # subtract right from left (that is in %rax), save result in %rax"
-    ]
-  where
-    leftBody = emitExpr leftExpr
-    rightBody = emitExpr rightExpr
+emitMultiplication :: PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitMultiplication leftExpr rightExpr = do
+  leftBody <- emitExpr leftExpr
+  rightBody <- emitExpr rightExpr
+  pure $
+    vcat
+      [ "# left operand"
+      , leftBody
+      , "push" <×> "%rax # save value of left operand on the stack"
+      , "# right operand"
+      , rightBody
+      , "pop " <×> "%rcx # pop left operand from the stack into %rcx"
+      , "imuq" <×> "%rcx, %rax # multiply left operand by right operand, save result in %rax"
+      ]
 
-emitDivision :: PlumeExpr -> PlumeExpr -> Doc ann
-emitDivision leftExpr rightExpr = 
-  vcat
-    [ "# right operand"
-    , rightBody
-    , "push" <×> "%rax # save value of right operand on the stack"
-    , "# left operand"
-    , leftBody
-    , "pop " <×> "%rcx # pop right operand from the stack into %rcx"
-    , "cdq"
-    , "idivq" <×> "%rcx # divide left by right (that is in %rax), save result in %rax"
-    ]
-  where
-    leftBody = emitExpr leftExpr
-    rightBody = emitExpr rightExpr
+emitSubtraction :: PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitSubtraction leftExpr rightExpr = do
+  leftBody <- emitExpr leftExpr
+  rightBody <- emitExpr rightExpr
+  pure $
+    vcat
+      [ "# right operand"
+      , rightBody
+      , "push" <×> "%rax # save value of right operand on the stack"
+      , "# left operand"
+      , leftBody
+      , "pop " <×> "%rcx # pop right operand from the stack into %rcx"
+      , "subq" <×> "%rcx, %rax # subtract right from left (that is in %rax), save result in %rax"
+      ]
 
-emitComparison :: PlumeOrdering -> PlumeExpr -> PlumeExpr -> Doc ann
-emitComparison ordering leftExpr rightExpr =
-  vcat
-    [ "# left operand"
-    , leftBody
-    , "push" <×> "%rax"
-    , "# right operand"
-    , rightBody
-    , "pop " <×> "%rcx # pop left from the stack into %rcx, right is already in %eax"
-    , "cmpq" <×> "%rax, %rcx # set ZF on, if left == right, set if off otherwise" 
-    , "movq" <×> "$0, %rax # zero out %rax"
-    , op <×> "%al # set %al (lower byte of %rax) to 1 iff ZF is on"
-    ]
+emitDivision :: PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitDivision leftExpr rightExpr = do
+  leftBody <- emitExpr leftExpr
+  rightBody <- emitExpr rightExpr
+  pure $
+    vcat
+      [ "# right operand"
+      , rightBody
+      , "push" <×> "%rax # save value of right operand on the stack"
+      , "# left operand"
+      , leftBody
+      , "pop " <×> "%rcx # pop right operand from the stack into %rcx"
+      , "cdq"
+      , "idivq" <×> "%rcx # divide left by right (that is in %rax), save result in %rax"
+      ]
+
+emitComparison :: PlumeOrdering -> PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitComparison ordering leftExpr rightExpr = do
+  leftBody <- emitExpr leftExpr
+  rightBody <- emitExpr rightExpr
+  pure $
+    vcat
+      [ "# left operand"
+      , leftBody
+      , "push" <×> "%rax"
+      , "# right operand"
+      , rightBody
+      , "pop " <×> "%rcx # pop left from the stack into %rcx, right is already in %eax"
+      , "cmpq" <×> "%rax, %rcx # set ZF on, if left == right, set if off otherwise"
+      , "movq" <×> "$0, %rax # zero out %rax"
+      , op <×> "%al # set %al (lower byte of %rax) to 1 iff ZF is on"
+      ]
   where
     op = case ordering of
-          PlumeGT -> "setg"
-          PlumeGTE -> "setge"
-          PlumeLT -> "setl"
-          PlumeLTE -> "setle"
-          PlumeEQ -> "sete"
-          PlumeNE -> "setne"
-    leftBody = emitExpr leftExpr
-    rightBody = emitExpr rightExpr
+      PlumeGT -> "setg"
+      PlumeGTE -> "setge"
+      PlumeLT -> "setl"
+      PlumeLTE -> "setle"
+      PlumeEQ -> "sete"
+      PlumeNE -> "setne"

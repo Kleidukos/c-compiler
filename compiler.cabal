@@ -78,6 +78,7 @@ library
     , base                >=4.7 && <5
     , bytestring
     , containers
+    , effectful-core
     , megaparsec
     , parser-combinators
     , prettyprinter

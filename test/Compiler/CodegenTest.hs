@@ -74,7 +74,8 @@ return2Test = do
           }
         |]
 
-  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 bitwise12Test :: IO LazyByteString
 bitwise12Test = do
@@ -88,7 +89,8 @@ bitwise12Test = do
           }
         |]
 
-  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 negate12Test :: IO LazyByteString
 negate12Test = do
@@ -102,7 +104,8 @@ negate12Test = do
           }
         |]
 
-  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testLogicalNegation :: IO LazyByteString
 testLogicalNegation = do
@@ -116,7 +119,8 @@ testLogicalNegation = do
           }
         |]
 
-  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testAddition :: IO LazyByteString
 testAddition = do
@@ -130,7 +134,8 @@ testAddition = do
             }
           |]
 
-  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testSubtraction :: IO LazyByteString
 testSubtraction = do
@@ -144,7 +149,8 @@ testSubtraction = do
             }
           |]
 
-  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testDivision :: IO LazyByteString
 testDivision = do
@@ -158,7 +164,8 @@ testDivision = do
             }
           |]
 
-  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testLowerThan :: IO LazyByteString
 testLowerThan = do
@@ -172,4 +179,5 @@ testLowerThan = do
             }
           |]
 
-  pure . Text.encodeUtf8 . Text.fromStrict $ runCodegen parsed
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
