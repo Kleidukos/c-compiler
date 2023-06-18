@@ -1,8 +1,7 @@
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-
 module Compiler.Codegen.X86_64 where
 
 import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Vector (Vector)
 import Data.Vector qualified as Vector
 import Prettyprinter
@@ -12,7 +11,7 @@ import Compiler.Types.AST
 import Control.Concurrent
 import Data.Function
 import Effectful
-import Effectful.Reader.Static (Reader, runReader)
+import Effectful.Reader.Static (Reader, ask, runReader)
 import Utils.Output
 
 data CodeGenEnv = CodeGenEnv
@@ -29,6 +28,11 @@ data PlumeOrdering
   | PlumeLTE
   | PlumeEQ
   | PlumeNE
+  deriving stock (Eq, Ord, Show)
+
+data LogicalOperator
+  = PlumeOR
+  | PlumeAND
   deriving stock (Eq, Ord, Show)
 
 runCodeGen :: AST -> IO Text
@@ -48,11 +52,21 @@ runCodeGen ast = do
 newCodeGenEnv :: IO (MVar CodeGenEnv)
 newCodeGenEnv = newMVar (CodeGenEnv{labelCounter = 0})
 
+getNextLabel :: CodeGenM Text
+getNextLabel = do
+  envMVar <- ask
+  liftIO $
+    modifyMVar
+      envMVar
+      ( \CodeGenEnv{labelCounter = lc} ->
+          pure (CodeGenEnv{labelCounter = lc + 1, ..}, Text.pack (".L" <> show lc))
+      )
 emit :: AST -> CodeGenM (Doc ann)
 emit = \case
   Fun name _ body -> emitFunction name body
   Return expr -> emitReturn expr
   Block exprs -> emitBlock exprs
+  _ -> undefined
 
 emitBlock :: Vector AST -> CodeGenM (Doc ann)
 emitBlock stmts = Vector.foldMap' emit stmts
@@ -71,10 +85,14 @@ emitExpr = \case
   LessThanOrEqual leftExpr rightExpr -> emitComparison PlumeLTE leftExpr rightExpr
   GreaterThan leftExpr rightExpr -> emitComparison PlumeGT leftExpr rightExpr
   GreaterThanOrEqual leftExpr rightExpr -> emitComparison PlumeGTE leftExpr rightExpr
+  And leftExpr rightExpr -> emitLogicalOperator PlumeAND leftExpr rightExpr
+  Or leftExpr rightExpr -> emitLogicalOperator PlumeOR leftExpr rightExpr
+  _ -> undefined
 
 emitLiteral :: PlumeLit -> CodeGenM (Doc ann)
 emitLiteral = \case
   LitInt i -> emitNumber i
+  _ -> undefined
 
 -- PlumeVar t ->
 -- PlumeApp PlumeExpr PlumeExpr
@@ -220,3 +238,39 @@ emitComparison ordering leftExpr rightExpr = do
       PlumeLTE -> "setle"
       PlumeEQ -> "sete"
       PlumeNE -> "setne"
+
+emitLogicalOperator :: LogicalOperator -> PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitLogicalOperator op leftExpr rightExpr = do
+  leftBody <- emitExpr leftExpr
+  rightBody <- emitExpr rightExpr
+  clause2Label <- getNextLabel
+  endLabel <- getNextLabel
+  let logicalCode = case op of
+        PlumeOR -> vcat ["je" <×> pretty clause2Label, "movq" <×> "$1, %rax"]
+        PlumeAND -> vcat ["jne" <×> pretty clause2Label]
+
+  pure $
+    vsep
+      [ vcat
+          [ "# left operand"
+          , leftBody
+          , "cmpq" <×> "$0, %rax"
+          , logicalCode
+          ]
+      , hang (-4) $
+          vcat
+            [ "jmp" <×> pretty endLabel <> " # jump to end label"
+            , pretty clause2Label <> ":"
+            ]
+      , vcat
+          [ "# right operand"
+          , rightBody
+          , "cmpq" <×> "$0, %rax # check if right expr is true"
+          , "movq" <×> "$0, %rax # zero out %rax"
+          ]
+      , hang (-4) $
+          vcat
+            [ "setne" <×> "%al # set %al (low byte of %rax) to 1 iff right expr is true"
+            , pretty endLabel <> ":" <×> " # end label"
+            ]
+      ]

@@ -60,6 +60,11 @@ specs =
         diffCmd
         "./test/golden/asm/lowerthan.s"
         testLowerThan
+    , goldenVsStringDiff
+        "logical operators"
+        diffCmd
+        "./test/golden/asm/logicalOperators.s"
+        testLogicalOperators
     ]
 
 return2Test :: IO LazyByteString
@@ -69,7 +74,7 @@ return2Test = do
       testParser
         parseStatements
         [str|
-          int main() { 
+          int main() {
             return 2;
           }
         |]
@@ -84,7 +89,7 @@ bitwise12Test = do
       testParser
         parseStatements
         [str|
-          int main() { 
+          int main() {
             return ~12;
           }
         |]
@@ -99,7 +104,7 @@ negate12Test = do
       testParser
         parseStatements
         [str|
-          int main() { 
+          int main() {
             return -12;
           }
         |]
@@ -114,7 +119,7 @@ testLogicalNegation = do
       testParser
         parseStatements
         [str|
-          int main() { 
+          int main() {
             return !1;
           }
         |]
@@ -129,7 +134,7 @@ testAddition = do
       testParser
         parseStatements
         [str|
-            int main() { 
+            int main() {
               return 3 + 2;
             }
           |]
@@ -144,7 +149,7 @@ testSubtraction = do
       testParser
         parseStatements
         [str|
-            int main() { 
+            int main() {
               return 3 - 2;
             }
           |]
@@ -159,7 +164,7 @@ testDivision = do
       testParser
         parseStatements
         [str|
-            int main() { 
+            int main() {
               return 10 / 2;
             }
           |]
@@ -174,8 +179,23 @@ testLowerThan = do
       testParser
         parseStatements
         [str|
-            int main() { 
+            int main() {
               return 10 < 2;
+            }
+          |]
+
+  generated <- runCodeGen parsed
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
+
+testLogicalOperators :: IO LazyByteString
+testLogicalOperators = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+            int main() {
+              return 0 && 1;
             }
           |]
 
