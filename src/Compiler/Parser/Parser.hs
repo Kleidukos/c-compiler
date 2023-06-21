@@ -9,9 +9,9 @@ import Text.Megaparsec hiding (State, Token, parse, satisfy, token)
 import Compiler.Parser.Helpers
 import Compiler.Parser.Lexer
 import Compiler.Types.AST
+import Compiler.Types.Name
 import Control.Monad.Combinators.Expr
 import Data.Vector (Vector)
-import Compiler.Types.Name
 
 parse
   :: Parser a
@@ -31,25 +31,25 @@ parse p fname source = do
 testParser :: Parser a -> String -> Either String a
 testParser p = parse p ""
 
-parseStatements :: Parser AST
+parseStatements :: Parser (AST CoreName)
 parseStatements = do
   stmts <- many parseStatement
   pure (Block (Vector.fromList stmts))
 
-parseStatement :: Parser AST
+parseStatement :: Parser (AST CoreName)
 parseStatement =
   try (parseAssignment <?> "Assignment")
     <|> (parseFunction <?> "Function")
     <|> (parseReturn <?> "Return")
 
-parseReturn :: Parser AST
+parseReturn :: Parser (AST CoreName)
 parseReturn = do
   reserved "return"
   result <- parseExpression
   semicolon
   pure $ Return result
 
-parseAssignment :: Parser AST
+parseAssignment :: Parser (AST CoreName)
 parseAssignment = do
   declarationType
   name <- varId
@@ -58,22 +58,22 @@ parseAssignment = do
   semicolon
   pure $ Let name body
 
-parseTerm :: Parser PlumeExpr
+parseTerm :: Parser (PlumeExpr CoreName)
 parseTerm =
   label "term" $
     choice
       [ parseNumber
       , parens parseExpression
-      , parseIdentifier
+      , Var <$> parseIdentifier
       ]
 
-parseNumber :: Parser PlumeExpr
+parseNumber :: Parser (PlumeExpr CoreName)
 parseNumber = Lit . LitInt <$> integer
 
-parseExpression :: Parser PlumeExpr
+parseExpression :: Parser (PlumeExpr CoreName)
 parseExpression = makeExprParser parseTerm operatorTable <?> "Expression"
 
-operatorTable :: [[Operator Parser PlumeExpr]]
+operatorTable :: [[Operator Parser (PlumeExpr CoreName)]]
 operatorTable =
   [
     [ -- prefix "+" id
@@ -105,21 +105,21 @@ operatorTable =
     ]
   ]
 
-binary :: Token -> (PlumeExpr -> PlumeExpr -> PlumeExpr) -> Operator Parser PlumeExpr
+binary :: Token -> (PlumeExpr CoreName -> PlumeExpr CoreName -> PlumeExpr CoreName) -> Operator Parser (PlumeExpr CoreName)
 binary name f = InfixL (f <$ token name)
 
-prefix :: Token -> (PlumeExpr -> PlumeExpr) -> Operator Parser PlumeExpr
+prefix :: Token -> (PlumeExpr CoreName -> PlumeExpr CoreName) -> Operator Parser (PlumeExpr CoreName)
 prefix name f = Prefix (f <$ token name)
 
-parseFunction :: Parser AST
+parseFunction :: Parser (AST CoreName)
 parseFunction = do
-  declarationType
-  funId <- declarationType
+  funType <- declarationType
+  funId <- parseIdentifier
   parsedParams <- parseParameters
   result <- braces parseStatements
-  pure $ Fun funId parsedParams result
+  pure $ Fun funType funId parsedParams result
 
-parseParameters :: Parser (Vector Pat)
+parseParameters :: Parser (Vector (Pat CoreName))
 parseParameters =
   noParameters <|> parameters
 
@@ -129,24 +129,22 @@ noParameters = label "no parameters" $ do
   token TokRParen
   pure mempty
 
-parameters :: Parser (Vector Pat)
+parameters :: Parser (Vector (Pat CoreName))
 parameters = label "parameters" $ do
   token TokLParen
   result <- patternVar `sepBy` comma
   token TokRParen
   pure $ Vector.fromList result
 
-declarationType :: Parser PlumeType
+declarationType :: Parser (PlumeType CoreName)
 declarationType =
-  label "function type" $ do
-    name <- varId
-    let nameSort = ModuleInternal
-    pure $ VarType PlumeName{..}
+  label "function's return type" $ do
+    name <- conId
+    pure $ VarType name
 
-patternVar :: Parser Pat
+patternVar :: Parser (Pat CoreName)
 patternVar = PatternVar <$> varId
 
-parseIdentifier :: Parser PlumeExpr
+parseIdentifier :: Parser CoreName
 parseIdentifier =
-  label "identifier" $ do
-    Var <$> varId
+  label "identifier" varId

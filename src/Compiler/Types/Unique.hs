@@ -2,6 +2,8 @@
 
 module Compiler.Types.Unique where
 
+import Control.Concurrent.Counter (Counter)
+import Control.Concurrent.Counter qualified as Counter
 import Prettyprinter (Doc, pretty)
 
 data Unique = Unique !UniqueSection !Int
@@ -9,38 +11,40 @@ data Unique = Unique !UniqueSection !Int
 
 -- | Provenance of Uniques.
 data UniqueSection
-  = -- PHC passes
+  = -- Compiler passes
     ParseSection
-  | RenameSection
+  | RenamingSection
   | TypeCheckSection
   | DesugarSection
   | SimplifySection
   | FastStringSection
   deriving (Eq, Ord, Show, Enum, Bounded)
 
-newtype UniqueSupply = UniqueSupply {uniques :: [Unique]}
-  deriving newtype (Eq, Show)
+data UniqueSupply = UniqueSupply
+  { section :: !UniqueSection
+  , counter :: !Counter
+  }
+  deriving stock (Eq)
 
-mkUniqueSupply :: UniqueSection -> UniqueSupply
-mkUniqueSupply pass = UniqueSupply $ map (Unique pass) [0 ..]
+mkUniqueSupply :: UniqueSection -> IO UniqueSupply
+mkUniqueSupply section = do
+  counter <- Counter.new 0
+  pure $ UniqueSupply section counter
 
--- nextUnique :: (State UniqueSupply :> es) => Eff es Unique
--- nextUnique = state (\(UniqueSupply s) -> (head s, UniqueSupply $ tail s))
-
-class HasUnique a where
-  getUnique :: a -> Unique
-
-instance HasUnique Unique where
-  getUnique = id
+nextUnique :: UniqueSupply -> IO Unique
+nextUnique (UniqueSupply section counter) = do
+  newUniqueInt <- Counter.get counter
+  Counter.set counter (newUniqueInt + 1)
+  pure $ Unique section newUniqueInt
 
 prettyUniqueSection :: UniqueSection -> Doc ann
 prettyUniqueSection = \case
- ParseSection -> "p"
- RenameSection -> "rn"
- TypeCheckSection -> "tc"
- DesugarSection -> "ds"
- SimplifySection -> "simpl"
- FastStringSection -> "fs"
+  ParseSection -> "p"
+  RenamingSection -> "rn"
+  TypeCheckSection -> "tc"
+  DesugarSection -> "ds"
+  SimplifySection -> "simpl"
+  FastStringSection -> "fs"
 
 prettyUnique :: Unique -> Doc ann
 prettyUnique (Unique pass num) = prettyUniqueSection pass <> pretty num

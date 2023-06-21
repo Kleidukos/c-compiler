@@ -8,6 +8,7 @@ import Prettyprinter
 import Prettyprinter.Render.Text (renderStrict)
 
 import Compiler.Types.AST
+import Compiler.Types.Name
 import Control.Concurrent
 import Data.Function
 import Effectful
@@ -35,7 +36,7 @@ data LogicalOperator
   | PlumeAND
   deriving stock (Eq, Ord, Show)
 
-runCodeGen :: AST -> IO Text
+runCodeGen :: AST PlumeName -> IO Text
 runCodeGen ast = do
   env <- newCodeGenEnv
   let action = emit ast
@@ -61,17 +62,17 @@ getNextLabel = do
       ( \CodeGenEnv{labelCounter = lc} ->
           pure (CodeGenEnv{labelCounter = lc + 1, ..}, Text.pack (".L" <> show lc))
       )
-emit :: AST -> CodeGenM (Doc ann)
+emit :: AST PlumeName -> CodeGenM (Doc ann)
 emit = \case
-  Fun name _ body -> emitFunction name body
+  Fun _returnType name _patterns body -> emitFunction name body
   Return expr -> emitReturn expr
   Block exprs -> emitBlock exprs
   _ -> undefined
 
-emitBlock :: Vector AST -> CodeGenM (Doc ann)
-emitBlock stmts = Vector.foldMap' emit stmts
+emitBlock :: Vector (AST PlumeName) -> CodeGenM (Doc ann)
+emitBlock = Vector.foldMap' emit
 
-emitExpr :: PlumeExpr -> CodeGenM (Doc ann)
+emitExpr :: PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitExpr = \case
   Lit lit -> emitLiteral lit
   Negate expr -> emitNegate expr
@@ -95,12 +96,12 @@ emitLiteral = \case
   _ -> undefined
 
 -- PlumeVar t ->
--- PlumeApp PlumeExpr PlumeExpr
+-- PlumeApp (PlumeExpr PlumeName) (PlumeExpr PlumeName)
 
 emitNumber :: Integer -> CodeGenM (Doc ann)
 emitNumber i = pure $ "movq" <×> "$" <> pretty i <> ", %rax"
 
-emitReturn :: PlumeExpr -> CodeGenM (Doc ann)
+emitReturn :: PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitReturn expr = do
   (body :: Doc ann) <- emitExpr expr
   pure $
@@ -109,8 +110,8 @@ emitReturn expr = do
       , "ret"
       ]
 
-emitFunction :: Text -> AST -> CodeGenM (Doc ann)
-emitFunction name stmt = do
+emitFunction :: PlumeName -> AST PlumeName -> CodeGenM (Doc ann)
+emitFunction plumeName stmt = do
   result <- emit stmt
   pure $
     vcat
@@ -119,12 +120,13 @@ emitFunction name stmt = do
       , indent 4 result
       ]
   where
-    functionName = do
+    name = plumeName.coreName.nameText
+    functionName =
       if name == "main"
         then "main"
         else "_" <> name
 
-emitNegate :: PlumeExpr -> CodeGenM (Doc ann)
+emitNegate :: PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitNegate expr = do
   body <- emitExpr expr
   pure $
@@ -133,7 +135,7 @@ emitNegate expr = do
       , "neg" <×> "%rax"
       ]
 
-emitBitwiseComplement :: PlumeExpr -> CodeGenM (Doc ann)
+emitBitwiseComplement :: PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitBitwiseComplement expr = do
   body <- emitExpr expr
   pure $
@@ -142,7 +144,7 @@ emitBitwiseComplement expr = do
       , "not" <×> "%rax"
       ]
 
-emitLogicalNegation :: PlumeExpr -> CodeGenM (Doc ann)
+emitLogicalNegation :: PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitLogicalNegation expr = do
   body <- emitExpr expr
   pure $
@@ -153,7 +155,7 @@ emitLogicalNegation expr = do
       , "sete" <×> "%al"
       ]
 
-emitAddition :: PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitAddition :: PlumeExpr PlumeName -> PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitAddition leftExpr rightExpr = do
   leftBody <- emitExpr leftExpr
   rightBody <- emitExpr rightExpr
@@ -168,7 +170,7 @@ emitAddition leftExpr rightExpr = do
       , "addq" <×> "%rcx, %rax # add left operand to right operand, save result in %rax"
       ]
 
-emitMultiplication :: PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitMultiplication :: PlumeExpr PlumeName -> PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitMultiplication leftExpr rightExpr = do
   leftBody <- emitExpr leftExpr
   rightBody <- emitExpr rightExpr
@@ -183,7 +185,7 @@ emitMultiplication leftExpr rightExpr = do
       , "imuq" <×> "%rcx, %rax # multiply left operand by right operand, save result in %rax"
       ]
 
-emitSubtraction :: PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitSubtraction :: PlumeExpr PlumeName -> PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitSubtraction leftExpr rightExpr = do
   leftBody <- emitExpr leftExpr
   rightBody <- emitExpr rightExpr
@@ -198,7 +200,7 @@ emitSubtraction leftExpr rightExpr = do
       , "subq" <×> "%rcx, %rax # subtract right from left (that is in %rax), save result in %rax"
       ]
 
-emitDivision :: PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitDivision :: PlumeExpr PlumeName -> PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitDivision leftExpr rightExpr = do
   leftBody <- emitExpr leftExpr
   rightBody <- emitExpr rightExpr
@@ -214,7 +216,7 @@ emitDivision leftExpr rightExpr = do
       , "idivq" <×> "%rcx # divide left by right (that is in %rax), save result in %rax"
       ]
 
-emitComparison :: PlumeOrdering -> PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitComparison :: PlumeOrdering -> PlumeExpr PlumeName -> PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitComparison ordering leftExpr rightExpr = do
   leftBody <- emitExpr leftExpr
   rightBody <- emitExpr rightExpr
@@ -239,7 +241,7 @@ emitComparison ordering leftExpr rightExpr = do
       PlumeEQ -> "sete"
       PlumeNE -> "setne"
 
-emitLogicalOperator :: LogicalOperator -> PlumeExpr -> PlumeExpr -> CodeGenM (Doc ann)
+emitLogicalOperator :: LogicalOperator -> PlumeExpr PlumeName -> PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitLogicalOperator op leftExpr rightExpr = do
   leftBody <- emitExpr leftExpr
   rightBody <- emitExpr rightExpr

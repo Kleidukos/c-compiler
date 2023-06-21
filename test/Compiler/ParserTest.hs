@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Compiler.ParserTest where
 
@@ -8,6 +9,7 @@ import Test.Tasty.HUnit
 
 import Compiler.Parser.Parser (parseExpression, parseStatements, testParser)
 import Compiler.Types.AST
+import Compiler.Types.Name
 import TestUtils
 
 specs :: TestTree
@@ -44,8 +46,15 @@ testMultiDigitReturn = do
         |]
 
   parsed
-    @?= Block [Fun "main" [] (Block [Return (Lit (LitInt 100))])]
-
+    @?= Block
+      [ Fun
+          ( VarType
+              (CoreName{namespace = TypeConstructor, nameText = "int"})
+          )
+          (CoreName{namespace = Binding, nameText = "main"})
+          []
+          (Block [Return (Lit (LitInt 100))])
+      ]
 testBunchOfNewlines :: Assertion
 testBunchOfNewlines = do
   parsed <-
@@ -65,7 +74,13 @@ testBunchOfNewlines = do
         |]
 
   parsed
-    @?= Block [Fun "main" [] (Block [Return (Lit (LitInt 0))])]
+    @?= Block
+      [ Fun
+          (VarType (CoreName{namespace = TypeConstructor, nameText = "int"}))
+          (CoreName{namespace = Binding, nameText = "main"})
+          []
+          (Block [Return (Lit (LitInt 0))])
+      ]
 
 testNoNewlines :: Assertion
 testNoNewlines = do
@@ -76,7 +91,13 @@ testNoNewlines = do
         [str|int main(){return 0;}|]
 
   parsed
-    @?= Block [Fun "main" [] (Block [Return (Lit (LitInt 0))])]
+    @?= Block
+      [ Fun
+          (VarType (CoreName{namespace = TypeConstructor, nameText = "int"}))
+          (CoreName{namespace = Binding, nameText = "main"})
+          []
+          (Block [Return (Lit (LitInt 0))])
+      ]
 
 testMissingClosingParen :: Assertion
 testMissingClosingParen = do
@@ -141,7 +162,14 @@ testParseBitwise = do
         |]
 
   parsed
-    @?= Block [Fun "main" [] (Block [Return (BitwiseComplement (Lit (LitInt 12)))])]
+    @?= Block
+      [ Fun
+          (VarType (CoreName{namespace = TypeConstructor, nameText = "int"}))
+          (CoreName{namespace = Binding, nameText = "main"})
+          []
+          ( Block [Return (BitwiseComplement (Lit (LitInt 12)))]
+          )
+      ]
 
 testParseArithmeticNegation :: Assertion
 testParseArithmeticNegation = do
@@ -156,7 +184,16 @@ testParseArithmeticNegation = do
         |]
 
   parsed
-    @?= Block [Fun "main" [] (Block [Return (Negate (Lit (LitInt 12)))])]
+    @?= Block
+      [ Fun
+          (VarType (CoreName{namespace = TypeConstructor, nameText = "int"}))
+          (CoreName{namespace = Binding, nameText = "main"})
+          []
+          ( Block
+              [ Return (Negate (Lit (LitInt 12)))
+              ]
+          )
+      ]
 
 testParseNestedMissingConstant :: Assertion
 testParseNestedMissingConstant = do
@@ -272,12 +309,12 @@ testChainedOperators = do
   parsed
     @?= Block
       [ Fun
-          "main"
-          []
-          ( Block
-              [ Return (And (Or (Lit (LitInt 1)) (Lit (LitInt 0))) (Lit (LitInt 2)))
-              ]
+          ( VarType
+              (CoreName{namespace = TypeConstructor, nameText = "int"})
           )
+          (CoreName{namespace = Binding, nameText = "main"})
+          []
+          (Block [Return (And (Or (Lit (LitInt 1)) (Lit (LitInt 0))) (Lit (LitInt 2)))])
       ]
 
 stage5Tests :: [TestTree]
@@ -301,11 +338,18 @@ parseAssignment = do
   parsed
     @?= Block
       [ Fun
-          "main"
+          (VarType (CoreName{namespace = TypeConstructor, nameText = "int"}))
+          (CoreName{namespace = Binding, nameText = "main"})
           []
           ( Block
-              [ Let "a" (Lit (LitInt 3))
-              , Return (Multiplication (Var "a") (Lit (LitInt 2)))
+              [ Let (CoreName{namespace = Binding, nameText = "a"}) (Lit (LitInt 3))
+              , Return
+                  ( Multiplication
+                      ( Var
+                          (CoreName{namespace = Binding, nameText = "a"})
+                      )
+                      (Lit (LitInt 2))
+                  )
               ]
           )
       ]

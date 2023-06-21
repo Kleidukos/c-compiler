@@ -1,3 +1,6 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Redundant bracket" #-}
 module TestUtils where
 
 import Compiler.Types.AST
@@ -18,7 +21,7 @@ assertParserLeft (Right a) = do
   say (show a)
   assertFailure "Test returned Right instead of Left"
 
-assertAST :: HasCallStack => Either String AST -> AST -> IO ()
+assertAST :: (HasCallStack, Eq name, Show name) => Either String (AST name) -> (AST name) -> IO ()
 assertAST (Right result) expected = result @?= expected
 assertAST (Left err) _ = do
   say err

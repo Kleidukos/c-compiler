@@ -18,6 +18,7 @@ import Text.Megaparsec.Char.Lexer qualified as M
 
 import Compiler.Parser.Lexer
 import Compiler.Parser.Lexer qualified as Lexer
+import Compiler.Types.Name
 import Compiler.Types.SrcLoc
 
 type Parser = Parsec Void TokStream
@@ -177,13 +178,21 @@ string = do
       _ -> False
   pure t
 
-varId :: Parser Text
+varId :: Parser CoreName
 varId = do
   (Located _ (TokVarId t)) <- satisfy $
     \case
       TokVarId _ -> True
       _ -> False
-  pure t
+  pure CoreName{nameText = t, namespace = Binding}
+
+conId :: Parser CoreName
+conId = do
+  (Located _ (TokVarId t)) <- satisfy $
+    \case
+      TokVarId _ -> True
+      _ -> False
+  pure CoreName{nameText = t, namespace = TypeConstructor}
 
 integer :: Parser Integer
 integer = do

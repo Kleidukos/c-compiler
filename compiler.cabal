@@ -56,14 +56,17 @@ library
 
   -- cabal-fmt: expand src/
   exposed-modules:
+    Compiler
     Compiler.Codegen.X86_64
     Compiler.Parser.Helpers
     Compiler.Parser.Lexer
     Compiler.Parser.Parser
+    Compiler.Renamer
     Compiler.TypeChecker
     Compiler.Types.AST
     Compiler.Types.Name
     Compiler.Types.SrcLoc
+    Compiler.Types.Unique
     Utils
     Utils.Output
 
@@ -75,6 +78,7 @@ library
 
   build-depends:
     , array
+    , atomic-counter
     , base                >=4.7 && <5
     , bytestring
     , containers
@@ -87,13 +91,20 @@ library
 
   default-language:   GHC2021
 
-executable phc
+executable plume
   import:           extensions
   import:           flags
   import:           rts-options
   main-is:          Main.hs
   hs-source-dirs:   app
-  build-depends:    base >=4.7 && <5
+  build-depends:
+    , base           >=4.7 && <5
+    , bytestring
+    , compiler
+    , directory
+    , text
+    , typed-process
+
   default-language: GHC2021
 
 test-suite compiler-tests

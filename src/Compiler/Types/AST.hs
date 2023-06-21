@@ -3,40 +3,38 @@ module Compiler.Types.AST where
 import Data.Text (Text)
 import Data.Vector (Vector)
 
-import Compiler.Types.Name
+data PlumeType name
+  = VarType name
+  | FunType (PlumeType name) (PlumeType name)
+  deriving stock (Eq, Ord, Show, Functor, Foldable, Traversable)
 
-data PlumeType
-  = VarType PlumeName
-  | FunType PlumeType PlumeType
-  deriving (Eq, Ord, Show)
-
-data PlumeExpr
-  = Var PlumeName
+data PlumeExpr name
+  = Var name
   | Lit PlumeLit
-  | App PlumeExpr PlumeExpr
-  | Negate PlumeExpr
-  | BitwiseComplement PlumeExpr
-  | LogicalNegation PlumeExpr
-  | Addition PlumeExpr PlumeExpr
-  | Multiplication PlumeExpr PlumeExpr
-  | Division PlumeExpr PlumeExpr
-  | Subtraction PlumeExpr PlumeExpr
-  | And PlumeExpr PlumeExpr
-  | Or PlumeExpr PlumeExpr
-  | Equal PlumeExpr PlumeExpr
-  | NotEqual PlumeExpr PlumeExpr
-  | LessThan PlumeExpr PlumeExpr
-  | LessThanOrEqual PlumeExpr PlumeExpr
-  | GreaterThan PlumeExpr PlumeExpr
-  | GreaterThanOrEqual PlumeExpr PlumeExpr
-  deriving (Eq, Ord, Show)
+  | App (PlumeExpr name) (PlumeExpr name)
+  | Negate (PlumeExpr name)
+  | BitwiseComplement (PlumeExpr name)
+  | LogicalNegation (PlumeExpr name)
+  | Addition (PlumeExpr name) (PlumeExpr name)
+  | Multiplication (PlumeExpr name) (PlumeExpr name)
+  | Division (PlumeExpr name) (PlumeExpr name)
+  | Subtraction (PlumeExpr name) (PlumeExpr name)
+  | And (PlumeExpr name) (PlumeExpr name)
+  | Or (PlumeExpr name) (PlumeExpr name)
+  | Equal (PlumeExpr name) (PlumeExpr name)
+  | NotEqual (PlumeExpr name) (PlumeExpr name)
+  | LessThan (PlumeExpr name) (PlumeExpr name)
+  | LessThanOrEqual (PlumeExpr name) (PlumeExpr name)
+  | GreaterThan (PlumeExpr name) (PlumeExpr name)
+  | GreaterThanOrEqual (PlumeExpr name) (PlumeExpr name)
+  deriving stock (Eq, Ord, Show, Functor, Foldable, Traversable)
 
-data AST
-  = Let Text PlumeExpr
-  | Return PlumeExpr
-  | Fun PlumeType (Vector Pat) AST
-  | Block (Vector AST)
-  deriving (Eq, Ord, Show)
+data AST name
+  = Let name (PlumeExpr name)
+  | Return (PlumeExpr name)
+  | Fun (PlumeType name) name (Vector (Pat name)) (AST name)
+  | Block (Vector (AST name))
+  deriving stock (Eq, Ord, Show, Functor, Foldable, Traversable)
 
 data PlumeLit
   = LitInt Integer
@@ -45,6 +43,7 @@ data PlumeLit
   | LitString Text
   deriving (Eq, Ord, Show)
 
-data Pat
-  = PatternVar Text
-  deriving (Eq, Ord, Show)
+data Pat name
+  = -- | A variable that gets filled, like the parameter of a function.
+    PatternVar name
+  deriving stock (Eq, Ord, Show, Functor, Foldable, Traversable)
