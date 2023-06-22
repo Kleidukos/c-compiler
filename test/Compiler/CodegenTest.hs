@@ -14,6 +14,7 @@ import Compiler.Codegen.X86_64
 import Compiler.Parser.Parser (parseStatements, testParser)
 import Compiler.Renamer (rename)
 import Compiler.Types.Unique
+import Test
 import TestUtils
 
 diffCmd :: String -> String -> [String]
@@ -83,7 +84,7 @@ return2Test = do
         |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 bitwise12Test :: IO LazyByteString
@@ -99,7 +100,7 @@ bitwise12Test = do
         |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 negate12Test :: IO LazyByteString
@@ -115,7 +116,7 @@ negate12Test = do
         |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testLogicalNegation :: IO LazyByteString
@@ -131,7 +132,7 @@ testLogicalNegation = do
         |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testAddition :: IO LazyByteString
@@ -147,7 +148,7 @@ testAddition = do
           |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testSubtraction :: IO LazyByteString
@@ -163,7 +164,7 @@ testSubtraction = do
           |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testDivision :: IO LazyByteString
@@ -179,7 +180,7 @@ testDivision = do
           |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testLowerThan :: IO LazyByteString
@@ -195,7 +196,7 @@ testLowerThan = do
           |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
 testLogicalOperators :: IO LazyByteString
@@ -211,5 +212,5 @@ testLogicalOperators = do
           |]
 
   uniqueSupply <- mkUniqueSupply RenamingSection
-  generated <- rename uniqueSupply parsed >>= runCodeGen
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated

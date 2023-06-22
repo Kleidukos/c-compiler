@@ -26,9 +26,9 @@ compileModule sourceName source = do
     Left err -> die (show err)
     Right parsed -> do
       uniqueSupply <- mkUniqueSupply RenamingSection
-      renameResult <- Right <$> Renamer.rename uniqueSupply parsed
+      renameResult <- Renamer.rename uniqueSupply parsed
       case renameResult of
-        Left _err -> die "bleh"
+        Left err -> die (show err)
         Right renamed -> do
           asm <- runCodeGen renamed
           targetTriplet <- readProcessStdout_ "gcc -dumpmachine"

@@ -103,20 +103,34 @@ emitNumber i = pure $ "movq" <×> "$" <> pretty i <> ", %rax"
 
 emitReturn :: PlumeExpr PlumeName -> CodeGenM (Doc ann)
 emitReturn expr = do
+  let epilogue =
+        vcat
+          [ "# Function epilogue"
+          , "movq" <×> "%ebp, %esp # Restore %esp; now it points to the old %ebp"
+          , "pop" <×> "%ebp # Restore old %ebp; now %esp is where it was before the prologue"
+          ]
   (body :: Doc ann) <- emitExpr expr
   pure $
     vcat
       [ body
+      , epilogue
       , "ret"
       ]
 
 emitFunction :: PlumeName -> AST PlumeName -> CodeGenM (Doc ann)
 emitFunction plumeName stmt = do
+  let prologue = indent 4  $
+        vcat
+          [ "# Function prologue"
+          , "push" <×> "%ebp # Save old value of %ebp on the stack"
+          , "movq" <×> "%esp, %ebp # current top of the stack is the bottom of the new stack frame"
+          ]
   result <- emit stmt
   pure $
     vcat
       [ indent 4 ".globl " <> pretty functionName
       , pretty functionName <> ":"
+      , prologue
       , indent 4 result
       ]
   where
