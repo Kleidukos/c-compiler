@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Compiler.CodegenTest where
 
