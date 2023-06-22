@@ -81,7 +81,7 @@ return2Test = do
           }
         |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
@@ -97,7 +97,7 @@ bitwise12Test = do
           }
         |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
@@ -113,7 +113,7 @@ negate12Test = do
           }
         |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
@@ -129,7 +129,7 @@ testLogicalNegation = do
           }
         |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
@@ -145,7 +145,7 @@ testAddition = do
             }
           |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
@@ -161,7 +161,7 @@ testSubtraction = do
             }
           |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
@@ -177,7 +177,7 @@ testDivision = do
             }
           |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
@@ -193,7 +193,7 @@ testLowerThan = do
             }
           |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
 
@@ -209,6 +209,6 @@ testLogicalOperators = do
             }
           |]
 
-  uniqueSupply <- mkUniqueSupply RenameSection
+  uniqueSupply <- mkUniqueSupply RenamingSection
   generated <- rename uniqueSupply parsed >>= runCodeGen
   pure . Text.encodeUtf8 . Text.fromStrict $ generated
