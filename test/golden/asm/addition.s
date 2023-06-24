@@ -1,8 +1,8 @@
     .globl main
 main:
     # Function prologue
-    push	%ebp # Save old value of %ebp on the stack
-    movq	%esp, %ebp # current top of the stack is the bottom of the new stack frame
+    push	%rbp # Save old value of %rbp on the stack
+    movq	%rsp, %rbp # current top of the stack is the bottom of the new stack frame
     # left operand
     movq	$3, %rax
     push	%rax # save value of left operand on the stack
@@ -11,6 +11,6 @@ main:
     pop 	%rcx # pop left operand from the stack into %rcx
     addq	%rcx, %rax # add left operand to right operand, save result in %rax
     # Function epilogue
-    movq	%ebp, %esp # Restore %esp; now it points to the old %ebp
-    pop	%ebp # Restore old %ebp; now %esp is where it was before the prologue
+    movq	%rbp, %rsp # Restore %rsp; now it points to the old %rbp
+    pop	%rbp # Restore old %rbp; now %rsp is where it was before the prologue
     ret

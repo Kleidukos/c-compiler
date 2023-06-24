@@ -1,5 +1,6 @@
 module Compiler.Types.AST where
 
+import Data.Kind (Type)
 import Data.Text (Text)
 import Data.Vector (Vector)
 
@@ -8,7 +9,7 @@ data PlumeType name
   | FunType (PlumeType name) (PlumeType name)
   deriving stock (Eq, Ord, Show, Functor, Foldable, Traversable)
 
-data PlumeExpr name
+data PlumeExpr (name :: Type) -- type of name
   = Var name
   | Lit PlumeLit
   | App (PlumeExpr name) (PlumeExpr name)

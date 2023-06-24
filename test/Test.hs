@@ -5,7 +5,6 @@ module Test
   , goldenShow
   , goldenPShow
   , CheckOutput (..)
-  , assertRight
   , pShowNoColorIndent2
   ) where
 
@@ -115,12 +114,6 @@ golden name dir testee check display = do
           return $ Just "Output was incorrect."
 
     upd fn (Right bs) = BS.writeFile fn bs
-
-assertRight :: (Show a, HasCallStack) => Either a b -> IO b
-assertRight (Left a) = do
-  putStrLn "Test returned Left instead of Right"
-  assertFailure $ "Got: " <> show a
-assertRight (Right b) = pure b
 
 -- assertRenamerError :: (Show a) => RenamerError -> Either RenamerError a -> IO ()
 -- assertRenamerError expectedError (Left actualError)

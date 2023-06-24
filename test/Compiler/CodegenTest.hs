@@ -14,7 +14,6 @@ import Compiler.Codegen.X86_64
 import Compiler.Parser.Parser (parseStatements, testParser)
 import Compiler.Renamer (rename)
 import Compiler.Types.Unique
-import Test
 import TestUtils
 
 diffCmd :: String -> String -> [String]
