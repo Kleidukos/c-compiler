@@ -43,4 +43,4 @@ prettyUniqueSection = \case
   CodeGenSection -> "cg"
 
 prettyUnique :: Unique -> Doc ann
-prettyUnique (Unique pass num) = prettyUniqueSection pass <> pretty num
+prettyUnique (Unique pass num) = "_" <> prettyUniqueSection pass <> pretty num

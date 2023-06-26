@@ -34,6 +34,13 @@ data AST name
   = Let name (PlumeExpr name)
   | Return (PlumeExpr name)
   | Fun (PlumeType name) name (Vector (Pat name)) (AST name)
+  | IfThenElse
+      (PlumeExpr name)
+      -- ^ Conditional
+      (AST name)
+      -- ^ If true
+      (AST name)
+      -- ^ If false
   | Block (Vector (AST name))
   deriving stock (Eq, Ord, Show, Functor, Foldable, Traversable)
 

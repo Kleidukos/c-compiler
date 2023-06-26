@@ -64,10 +64,15 @@ specs =
         "./test/golden/asm/lowerthan.s"
         testLowerThan
     , goldenVsStringDiff
-        "logical operators"
+        "Logical operator"
         diffCmd
         "./test/golden/asm/logicalOperators.s"
         testLogicalOperators
+    , goldenVsStringDiff
+        "If-then-else"
+        diffCmd
+        "./test/golden/asm/IfThenElse.s"
+        testIfThenElse
     ]
 
 return2Test :: IO LazyByteString
@@ -207,6 +212,25 @@ testLogicalOperators = do
         [str|
             int main() {
               return 0 && 1;
+            }
+          |]
+
+  uniqueSupply <- mkUniqueSupply RenamingSection
+  generated <- rename uniqueSupply parsed >>= assertRight >>= runCodeGen
+  pure . Text.encodeUtf8 . Text.fromStrict $ generated
+
+testIfThenElse :: IO LazyByteString
+testIfThenElse = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+            int main() {
+              let a = 3;
+              if (a > 3)
+              then return 0;
+              else return 7;
             }
           |]
 

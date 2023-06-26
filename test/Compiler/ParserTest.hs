@@ -21,6 +21,7 @@ specs =
     , testGroup "Stage 3" stage3Tests
     , testGroup "Stage 4" stage4Tests
     , testGroup "Stage 5" stage5Tests
+    , testGroup "Stage 6" stage6Tests
     ]
 
 stage1Tests :: [TestTree]
@@ -139,7 +140,7 @@ testMissingClosingBrace = do
         |]
 
   parsed
-    @?= "1:1:\nunexpected end of input\nexpecting \"}\", Assignment, Function, or Return\n"
+    @?= "1:1:\nunexpected end of input\nexpecting \"}\", Assignment, Function, If-Then-Else, or Return\n"
 
 stage2Tests :: [TestTree]
 stage2Tests =
@@ -319,7 +320,7 @@ testChainedOperators = do
 
 stage5Tests :: [TestTree]
 stage5Tests =
-  [ testCase "Parse assignment" parseAssignment
+  [ testCase "Parse declaration and assignment" parseAssignment
   ]
 
 parseAssignment :: Assertion
@@ -349,6 +350,61 @@ parseAssignment = do
                           (CoreName{namespace = Binding, nameText = "a"})
                       )
                       (Lit (LitInt 2))
+                  )
+              ]
+          )
+      ]
+
+stage6Tests :: [TestTree]
+stage6Tests =
+  [ testCase "Parse if-then-else" parseIfThenElse
+  ]
+
+parseIfThenElse :: Assertion
+parseIfThenElse = do
+  parsed <-
+    assertParserRight $
+      testParser
+        parseStatements
+        [str|
+        int main() {
+            int a = 3;
+            if (a < 4) 
+            then 
+              return a * 2;
+            else
+              return a / 3;
+        }
+        |]
+
+  parsed
+    @?= Block
+      [ Fun
+          (VarType (CoreName{namespace = TypeConstructor, nameText = "int"}))
+          (CoreName{namespace = Binding, nameText = "main"})
+          []
+          ( Block
+              [ Let (CoreName{namespace = Binding, nameText = "a"}) (Lit (LitInt 3))
+              , IfThenElse
+                  ( LessThan
+                      (Var (CoreName{namespace = Binding, nameText = "a"}))
+                      (Lit (LitInt 4))
+                  )
+                  ( Block
+                      [ Return
+                          ( Multiplication
+                              (Var (CoreName{namespace = Binding, nameText = "a"}))
+                              (Lit (LitInt 2))
+                          )
+                      ]
+                  )
+                  ( Block
+                      [ Return
+                          ( Division
+                              (Var (CoreName{namespace = Binding, nameText = "a"}))
+                              (Lit (LitInt 3))
+                          )
+                      ]
                   )
               ]
           )

@@ -65,7 +65,8 @@ emit = \case
   Fun _returnType name _patterns body -> emitFunction name body
   Return expr -> emitReturn expr
   Block exprs -> emitBlock exprs
-  _ -> undefined
+  IfThenElse condition truePath falsePath -> emitIfThenElse condition truePath falsePath
+  Let name body -> undefined
 
 emitBlock :: Vector (AST PlumeName) -> CodeGenM (Doc ann)
 emitBlock = Vector.foldMap' emit
@@ -251,7 +252,11 @@ emitComparison ordering leftExpr rightExpr = do
       PlumeEQ -> "sete"
       PlumeNE -> "setne"
 
-emitLogicalOperator :: LogicalOperator -> PlumeExpr PlumeName -> PlumeExpr PlumeName -> CodeGenM (Doc ann)
+emitLogicalOperator
+  :: LogicalOperator
+  -> PlumeExpr PlumeName
+  -> PlumeExpr PlumeName
+  -> CodeGenM (Doc ann)
 emitLogicalOperator op leftExpr rightExpr = do
   leftBody <- emitExpr leftExpr
   rightBody <- emitExpr rightExpr
@@ -284,5 +289,44 @@ emitLogicalOperator op leftExpr rightExpr = do
           vcat
             [ "setne" <×> "%al # set %al (low byte of %rax) to 1 iff right expr is true"
             , endLabel <> ":" <×> " # end label"
+            ]
+      ]
+
+emitIfThenElse
+  :: PlumeExpr PlumeName
+  -- ^ Condition
+  -> AST PlumeName
+  -- ^ True path
+  -> AST PlumeName
+  -- ^ False path
+  -> CodeGenM (Doc ann)
+emitIfThenElse condition truePath falsePath = do
+  conditionBody <- emitExpr condition
+  truePathBody <- emit truePath
+  falsePathBody <- emit falsePath
+  falseLabel <- getNextLabel
+  postConditionalLabel <- getNextLabel
+  pure $
+    vsep
+      [ vcat
+          [ "# Condition"
+          , conditionBody
+          , "cmpq" <×> "$0, %rax"
+          , "je" <×> pretty falseLabel <> "# if condition == 0, condition is false so execute " <> pretty falseLabel
+          , "# True code path"
+          , truePathBody
+          , "jmp" <> pretty postConditionalLabel
+          ]
+      , hang (-4) $
+          vcat
+            [ pretty falseLabel <> ":"
+            ]
+      , vcat
+          [ "# False code path"
+          , falsePathBody
+          ]
+      , hang (-4) $
+          vcat
+            [ pretty postConditionalLabel <> ": # Jump over the false code path"
             ]
       ]

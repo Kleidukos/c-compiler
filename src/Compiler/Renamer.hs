@@ -67,6 +67,11 @@ renameAST ast = case ast of
     pure $ Fun renamedReturnType renamedFunctionName renamedBinders renamedBody
   Return expr -> Return <$> renameExpr expr
   Block asts -> Block <$> Vector.mapM renameAST asts
+  IfThenElse condition truePath falsePath ->
+    pure IfThenElse
+      <*> renameExpr condition
+      <*> renameAST truePath
+      <*> renameAST falsePath
 
 renameExpr :: PlumeExpr CoreName -> Renamer (PlumeExpr PlumeName)
 renameExpr (Var name) = Var <$> guardNotFound name

@@ -39,6 +39,7 @@ parseStatements = do
 parseStatement :: Parser (AST CoreName)
 parseStatement =
   try (parseAssignment <?> "Assignment")
+    <|> (parseIfThenElse <?> "If-Then-Else")
     <|> (parseFunction <?> "Function")
     <|> (parseReturn <?> "Return")
 
@@ -48,6 +49,16 @@ parseReturn = do
   result <- parseExpression
   semicolon
   pure $ Return result
+
+parseIfThenElse :: Parser (AST CoreName)
+parseIfThenElse = do
+  reserved "if"
+  condition <- parens parseExpression
+  reserved "then"
+  truePath <- parseStatements
+  reserved "else"
+  falsePath <- parseStatements
+  pure $ IfThenElse condition truePath falsePath
 
 parseAssignment :: Parser (AST CoreName)
 parseAssignment = do

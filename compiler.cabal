@@ -57,6 +57,7 @@ library
   -- cabal-fmt: expand src/
   exposed-modules:
     Compiler
+    Compiler.Codegen.CorePlume
     Compiler.Codegen.X86_64
     Compiler.Parser.Helpers
     Compiler.Parser.Lexer

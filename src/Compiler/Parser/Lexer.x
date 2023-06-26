@@ -52,7 +52,7 @@ $idchar    = [$alpha $digit \']
 $symchar   = [$symbol \:]
 $nl        = [\n\r]
 
-@reservedid = return
+@reservedid = return | if | then | else
 
 @reservedop = ".." | ":"  | "::" | "=="  | \\
             | "|"  | "<-" | "->" | "@"  | "~"
@@ -201,6 +201,9 @@ mkReservedIdTok srcSpan src = Located srcSpan $ reservedIdToTok src
 
 reservedIdToTok = \case
     "return" -> TokReturn
+    "if" -> TokIf
+    "then" -> TokThen
+    "else" -> TokElse
     str        -> error $ "Compiler.Parser.Lexer.reservedIdToTok: " <>
         "String `" <> show str <> "' is not a reserved word."
 
