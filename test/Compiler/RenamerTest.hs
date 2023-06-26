@@ -8,7 +8,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Compiler.Parser.Parser (parseStatements, testParser)
-import Compiler.Renamer (rename, RenamingError(..))
+import Compiler.Renamer (RenamingError (..), rename)
 import Compiler.Types.Unique (UniqueSection (..), mkUniqueSupply)
 import TestUtils
 
@@ -17,7 +17,7 @@ specs =
   testGroup
     "Renamer Tests"
     [ testCase "Undeclared binding is detected" testDetectUndeclaredBinding
-    , testCase "Duplicate declarations in the same scope" testDetectDuplicateBindings 
+    , testCase "Duplicate declarations in the same scope" testDetectDuplicateBindings
     ]
 
 testDetectUndeclaredBinding :: Assertion

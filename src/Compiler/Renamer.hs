@@ -49,7 +49,7 @@ renameCoreName coreName = do
   uniqueSupply <- Reader.ask
   unique <- liftIO $ nextUnique uniqueSupply
   let renamedName = PlumeName ModuleInternal coreName unique
-  addName coreName 
+  addName coreName
   pure renamedName
 
 renameAST :: AST CoreName -> Renamer (AST PlumeName)
@@ -61,7 +61,7 @@ renameAST ast = case ast of
   Fun returnType functionName binders body -> do
     renamedReturnType <- traverse renameCoreName returnType
     renamedFunctionName <- guardDuplicate functionName
-    addName functionName 
+    addName functionName
     renamedBinders <- mapM (\(PatternVar name) -> PatternVar <$> renameCoreName name) binders
     renamedBody <- renameAST body
     pure $ Fun renamedReturnType renamedFunctionName renamedBinders renamedBody
@@ -72,17 +72,17 @@ renameExpr :: PlumeExpr CoreName -> Renamer (PlumeExpr PlumeName)
 renameExpr (Var name) = Var <$> guardNotFound name
 renameExpr expr = traverse renameCoreName expr
 
-guardNotFound :: CoreName -> Renamer PlumeName 
+guardNotFound :: CoreName -> Renamer PlumeName
 guardNotFound name = do
-    RenamerEnv{bindings} <- State.get
-    if Set.member name bindings
+  RenamerEnv{bindings} <- State.get
+  if Set.member name bindings
     then renameCoreName name
     else Error.throwError $ BindingNotFound name.nameText
 
 guardDuplicate :: CoreName -> Renamer PlumeName
 guardDuplicate name = do
-    RenamerEnv{bindings} <- State.get
-    if Set.member name bindings
+  RenamerEnv{bindings} <- State.get
+  if Set.member name bindings
     then Error.throwError $ DuplicateDeclaration name.nameText
     else renameCoreName name
 

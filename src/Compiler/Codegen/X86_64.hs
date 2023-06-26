@@ -1,7 +1,6 @@
 module Compiler.Codegen.X86_64 where
 
 import Data.Text (Text)
-import Data.Text qualified as Text
 import Data.Vector (Vector)
 import Data.Vector qualified as Vector
 import Prettyprinter
@@ -9,10 +8,12 @@ import Prettyprinter.Render.Text (renderStrict)
 
 import Compiler.Types.AST
 import Compiler.Types.Name
+import Compiler.Types.Unique
 import Control.Concurrent
 import Data.Function
 import Effectful
-import Effectful.Reader.Static (Reader, ask, runReader)
+import Effectful.Reader.Static (Reader)
+import Effectful.Reader.Static qualified as Reader
 import Utils.Output
 
 data CodeGenEnv = CodeGenEnv
@@ -20,7 +21,7 @@ data CodeGenEnv = CodeGenEnv
   }
   deriving stock (Eq, Ord, Show)
 
-type CodeGenM a = Eff '[Reader (MVar CodeGenEnv), IOE] a
+type CodeGenM a = Eff '[Reader UniqueSupply, IOE] a
 
 data PlumeOrdering
   = PlumeGT
@@ -38,11 +39,11 @@ data LogicalOperator
 
 runCodeGen :: AST PlumeName -> IO Text
 runCodeGen ast = do
-  env <- newCodeGenEnv
+  uniqueSupply <- mkUniqueSupply CodeGenSection
   let action = emit ast
   doc <-
     action
-      & runReader env
+      & Reader.runReader uniqueSupply
       & runEff
   pure $
     renderStrict $
@@ -53,15 +54,12 @@ runCodeGen ast = do
 newCodeGenEnv :: IO (MVar CodeGenEnv)
 newCodeGenEnv = newMVar (CodeGenEnv{labelCounter = 0})
 
-getNextLabel :: CodeGenM Text
+getNextLabel :: CodeGenM (Doc ann)
 getNextLabel = do
-  envMVar <- ask
-  liftIO $
-    modifyMVar
-      envMVar
-      ( \CodeGenEnv{labelCounter = lc} ->
-          pure (CodeGenEnv{labelCounter = lc + 1, ..}, Text.pack (".L" <> show lc))
-      )
+  uniqueSupply <- Reader.ask
+  unique <- liftIO $ nextUnique uniqueSupply
+  pure $ ".L" <> prettyUnique unique
+
 emit :: AST PlumeName -> CodeGenM (Doc ann)
 emit = \case
   Fun _returnType name _patterns body -> emitFunction name body
@@ -260,8 +258,8 @@ emitLogicalOperator op leftExpr rightExpr = do
   clause2Label <- getNextLabel
   endLabel <- getNextLabel
   let logicalCode = case op of
-        PlumeOR -> vcat ["je" <×> pretty clause2Label, "movq" <×> "$1, %rax"]
-        PlumeAND -> vcat ["jne" <×> pretty clause2Label]
+        PlumeOR -> vcat ["je" <×> clause2Label, "movq" <×> "$1, %rax"]
+        PlumeAND -> vcat ["jne" <×> clause2Label]
 
   pure $
     vsep
@@ -273,8 +271,8 @@ emitLogicalOperator op leftExpr rightExpr = do
           ]
       , hang (-4) $
           vcat
-            [ "jmp" <×> pretty endLabel <> " # jump to end label"
-            , pretty clause2Label <> ":"
+            [ "jmp" <×> endLabel <> " # jump to end label"
+            , clause2Label <> ":"
             ]
       , vcat
           [ "# right operand"
@@ -285,6 +283,6 @@ emitLogicalOperator op leftExpr rightExpr = do
       , hang (-4) $
           vcat
             [ "setne" <×> "%al # set %al (low byte of %rax) to 1 iff right expr is true"
-            , pretty endLabel <> ":" <×> " # end label"
+            , endLabel <> ":" <×> " # end label"
             ]
       ]

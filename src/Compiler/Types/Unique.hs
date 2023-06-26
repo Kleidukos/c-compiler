@@ -15,9 +15,7 @@ data UniqueSection
     ParseSection
   | RenamingSection
   | TypeCheckSection
-  | DesugarSection
-  | SimplifySection
-  | FastStringSection
+  | CodeGenSection
   deriving (Eq, Ord, Show, Enum, Bounded)
 
 data UniqueSupply = UniqueSupply
@@ -42,9 +40,7 @@ prettyUniqueSection = \case
   ParseSection -> "p"
   RenamingSection -> "rn"
   TypeCheckSection -> "tc"
-  DesugarSection -> "ds"
-  SimplifySection -> "simpl"
-  FastStringSection -> "fs"
+  CodeGenSection -> "cg"
 
 prettyUnique :: Unique -> Doc ann
 prettyUnique (Unique pass num) = prettyUniqueSection pass <> pretty num
